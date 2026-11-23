@@ -3,6 +3,7 @@ export const phrases: Record<string, [string, string, string, string, string]> =
   {
     reportLanguage: ["Report language", "لغة البلاغ", "رپورٹ کی زبان", "रिपोर्ट की भाषा", "ภาษาของรายงาน"],
     answerLanguage: ["Answer language", "لغة الإجابة", "جواب کی زبان", "उत्तर की भाषा", "ภาษาของคำตอบ"],
+    ordinaryMachineTranslation: ["Machine translation", "ترجمة آلية", "مشینی ترجمہ", "मशीनी अनुवाद", "คำแปลด้วยเครื่อง"],
     machineTranslation: ["Experimental machine translation. Check important details against the original.", "ترجمة آلية تجريبية. تحقّق من التفاصيل المهمة بالرجوع إلى النص الأصلي.", "تجرباتی مشینی ترجمہ۔ اہم تفصیلات اصل متن سے ملا کر دیکھیں۔", "प्रायोगिक मशीनी अनुवाद। ज़रूरी विवरण मूल रिपोर्ट से मिलाएँ।", "คำแปลด้วยเครื่องที่อยู่ระหว่างทดลอง โปรดตรวจสอบรายละเอียดสำคัญกับต้นฉบับ"],
     storedTranslation: ["Stored translation", "ترجمة محفوظة", "محفوظ شدہ ترجمہ", "संग्रहीत अनुवाद", "คำแปลที่บันทึกไว้"],
     reportOriginalOnly: ["No translation is available for this language. The original report is shown above.", "لا تتوفر ترجمة بهذه اللغة. يظهر نص البلاغ الأصلي أعلاه.", "اس زبان میں ترجمہ دستیاب نہیں ہے۔ اصل رپورٹ اوپر دکھائی گئی ہے۔", "इस भाषा में अनुवाद उपलब्ध नहीं है। मूल रिपोर्ट ऊपर दिखाई गई है।", "ไม่มีคำแปลสำหรับภาษานี้ ข้อความรายงานต้นฉบับแสดงอยู่ด้านบน"],

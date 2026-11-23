@@ -89,7 +89,7 @@ export default function Search({ query }: { query: Filters }) {
               />
             </Field>
           )}
-          <button
+          <button data-ui-action="search_submit"
             className="primary"
             disabled={busy || (!text.trim() && !file)}
           >

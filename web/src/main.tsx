@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ChartNoAxesColumn,
@@ -17,6 +17,7 @@ import "@fontsource/barlow-condensed/800.css";
 import "./style.css";
 import { Locale, useWords } from "./locale";
 import { langs, route } from "./client";
+import { listenForClicks } from "./uiEvents";
 import Explore from "./Explore";
 import Report from "./Report";
 import Search from "./Search";
@@ -36,7 +37,7 @@ function App() {
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = ["ar", "ur"].includes(lang) ? "rtl" : "ltr";
     localStorage.setItem("language", lang);
@@ -108,7 +109,7 @@ function Shell({
       </a>
       <header className="topbar">
         <div className="top-inner">
-          <a className="wordmark" href="#/explore" dir="ltr">
+          <a data-ui-action="explore_open" className="wordmark" href="#/explore" dir="ltr">
             <span className="brand-mark" aria-hidden="true">
               <i />
               <i />
@@ -125,6 +126,7 @@ function Shell({
               ] as const
             ).map(({ key, Icon }) => (
               <a
+                data-ui-action={key + "_open"}
                 href={"#/" + key}
                 key={key}
                 aria-current={page === key ? "page" : undefined}
@@ -138,6 +140,7 @@ function Shell({
             <label title={t("language")}>
               <Languages size={18} />
               <select
+                data-ui-action="interface_language"
                 aria-label={t("language")}
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
@@ -153,6 +156,7 @@ function Shell({
             <label title={t("theme")}>
               <SunMoon size={18} />
               <select
+                data-ui-action="theme_change"
                 aria-label={t("theme")}
                 value={theme}
                 onChange={(e) => setTheme(e.target.value)}
@@ -165,7 +169,7 @@ function Shell({
               </select>
             </label>
           </div>
-          <a href="#/report" className="primary report-action">
+          <a data-ui-action="report_open" href="#/report" className="primary report-action">
             <Plus size={17} />
             {t("newReport")}
           </a>
@@ -191,4 +195,6 @@ function Shell({
     </>
   );
 }
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root")!;
+listenForClicks(root);
+createRoot(root).render(<App />);

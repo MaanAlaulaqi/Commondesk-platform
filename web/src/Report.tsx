@@ -245,7 +245,7 @@ export default function Report() {
             <p>
               <Paperclip size={15} />
               {t("photo")}{" "}
-              <button type="button" onClick={() => change({ photo: "" })}>
+              <button type="button" data-ui-action="photo_remove" onClick={() => change({ photo: "" })}>
                 {t("clear")}
               </button>
             </p>
@@ -281,6 +281,7 @@ export default function Report() {
             <div className="actions">
               <button
                 type="button"
+                data-ui-action="location_apply"
                 onClick={() => {
                   try {
                     point(typedPoint());
@@ -291,20 +292,20 @@ export default function Report() {
               >
                 {t("setPin")}
               </button>
-              <button type="button" onClick={locate}>
+              <button type="button" data-ui-action="location_current" onClick={locate}>
                 <LocateFixed size={16} />
                 {t("locate")}
               </button>
               <button
                 className="text-btn"
                 type="button"
-                onClick={() => point(null)}
+                data-ui-action="location_clear" onClick={() => point(null)}
               >
                 {t("clearPin")}
               </button>
             </div>
           </fieldset>
-          <button className="primary" disabled={busy || !d.text.trim()}>
+          <button data-ui-action="report_prepare" className="primary" disabled={busy || !d.text.trim()}>
             {busy ? t("loading") : t("continue")}
             <ArrowRight size={17} />
           </button>
@@ -349,7 +350,7 @@ export default function Report() {
               disabled={
                 busy || (!!proposal.question && !d.clarification.trim())
               }
-              onClick={() => (proposal.question ? prepare() : submit(false))}
+              data-ui-action={proposal.question ? "report_prepare" : "report_submit"} onClick={() => (proposal.question ? prepare() : submit(false))}
             >
               <Check size={17} />
               {busy
@@ -358,10 +359,10 @@ export default function Report() {
                   ? t("continue")
                   : t("confirm")}
             </button>
-            <button disabled={busy} onClick={() => setProposal(null)}>
+            <button disabled={busy} data-ui-action="report_edit" onClick={() => setProposal(null)}>
               {t("edit")}
             </button>
-            <button disabled={busy} onClick={() => submit(true)}>
+            <button disabled={busy} data-ui-action="report_submit" onClick={() => submit(true)}>
               {t("manual")}
             </button>
           </div>

@@ -126,11 +126,11 @@ export default function Explore({ query }: { query: Filters }) {
       </div>
       <FilterBar f={f} set={update} facets={facets.data} />
       <div className="mobile-tabs">
-        <button aria-pressed={mobile === "map"} onClick={() => setTab("map")}>
+        <button aria-pressed={mobile === "map"} data-ui-action="map_view" onClick={() => setTab("map")}>
           <MapIcon size={16} />
           {t("map")}
         </button>
-        <button aria-pressed={mobile === "list"} onClick={() => setTab("list")}>
+        <button aria-pressed={mobile === "list"} data-ui-action="list_view" onClick={() => setTab("list")}>
           <List size={16} />
           {t("list")}
         </button>
@@ -168,7 +168,7 @@ export default function Explore({ query }: { query: Filters }) {
                 <button
                   className="close"
                   aria-label={t("clear")}
-                  onClick={() => select("")}
+                  data-ui-action="clear_selection" onClick={() => select("")}
                 >
                   ×
                 </button>
@@ -238,14 +238,14 @@ export default function Explore({ query }: { query: Filters }) {
             <button
               aria-label={t("previous")}
               disabled={!page}
-              onClick={() => setPage(page - 1)}
+              data-ui-action="page_previous" onClick={() => setPage(page - 1)}
             >
               <ChevronLeft />
             </button>
             <button
               aria-label={t("next")}
               disabled={(page + 1) * size >= total}
-              onClick={() => setPage(page + 1)}
+              data-ui-action="page_next" onClick={() => setPage(page + 1)}
             >
               <ChevronRight />
             </button>
@@ -256,14 +256,14 @@ export default function Explore({ query }: { query: Filters }) {
         <span>{t("switchLayout")}</span>
         <button
           aria-pressed={layout === "map"}
-          onClick={() => changeLayout("map")}
+          data-ui-action="map_view" onClick={() => changeLayout("map")}
         >
           <PanelRight size={15} />
           {t("mapLed")}
         </button>
         <button
           aria-pressed={layout === "list"}
-          onClick={() => changeLayout("list")}
+          data-ui-action="list_view" onClick={() => changeLayout("list")}
         >
           <PanelLeft size={15} />
           {t("listLed")}
