@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { useContext, useEffect, useState } from "react";
 import { ArrowUpRight, Check } from "lucide-react";
 import {
@@ -11,6 +12,7 @@ import {
   post,
   url,
 } from "./client";
+import { ServiceRouting, type RoutingOption, privateCategory } from "./ServiceRouting";
 import { Locale, useWords } from "./locale";
 import {
   Busy,
@@ -29,7 +31,9 @@ type Detail = Case & {
   original_language?: string;
   suggested_urgency?: string;
   final_urgency?: string | null;
-  service_options?: { id: string; name: string; url: string }[];
+  service_options?: RoutingOption[];
+  service_context?: string;
+  revision?: number;
   service?: string;
   index_state?: string;
   urgency_evidence?: string;
@@ -49,6 +53,7 @@ const emptyReview = {
   urgency: "",
   status: "",
   service: "",
+  service_context: "",
   feedback: "",
 };
 type ReviewDraft = { fields: typeof emptyReview; key: string };
@@ -58,10 +63,10 @@ function readDraft(storageKey: string): ReviewDraft {
     if (
       typeof saved?.key === "string" &&
       Object.keys(emptyReview).every(
-        (k) => typeof saved.fields?.[k] === "string",
+        (k) => typeof saved.fields?.[k] === "string" || (k === "service_context" && saved.fields?.[k] === undefined),
       )
     )
-      return saved;
+      return { ...saved, fields: { ...emptyReview, ...saved.fields } };
   } catch {
     /* Start a fresh review if a stored draft is obsolete. */
   }
@@ -118,6 +123,7 @@ export default function DetailView({
     try {
       await post("/cases/" + encodeURIComponent(id) + "/review", {
         ...Object.fromEntries(Object.entries(review).filter(([, v]) => v)),
+        expected_revision: c?.revision,
         idempotency_key: draft.key,
       });
       sessionStorage.removeItem(storageKey);
@@ -188,7 +194,10 @@ export default function DetailView({
       <div className="narrow">
         <Breadcrumb to={url("search", { source: "archive" })} word="search" />
         <div className="page-head">
-          <h1>{t("archiveReference")}</h1>
+          <div className="page-intro">
+            <h1>{t("archiveReference")}</h1>
+            <PageOrientation topic="archive" />
+          </div>
         </div>
         <section className="sheet">
           <h2>{t("original")}</h2>
@@ -231,6 +240,7 @@ export default function DetailView({
         <div>
           <bdi className="identifier">{id}</bdi>
           <h1>{pretty(c.category) || t("case")}</h1>
+          <PageOrientation topic="detail" />
         </div>
         <Urgency level={c.final_urgency || c.urgency} />
       </div>
@@ -429,7 +439,7 @@ export default function DetailView({
                       disabled={busy}
                       value={review[k]}
                       onChange={(e) =>
-                        setReview({ ...review, [k]: e.target.value })
+                        setReview({ ...review, [k]: e.target.value, service: k === "status" ? review.service : "" })
                       }
                     >
                       <option value="">{t("choose")}</option>
@@ -440,6 +450,8 @@ export default function DetailView({
                           : [
                               ...new Set([
                                 c.category,
+                                "private_plumbing",
+                                "private_electrical",
                                 "drainage",
                                 "footpath",
                                 "lighting",
@@ -455,49 +467,22 @@ export default function DetailView({
                         .filter(Boolean)
                         .map((v) => (
                           <option key={v} value={v}>
-                            {pretty(v)}
+                            {privateCategory(v, locale) || pretty(v)}
                           </option>
                         ))}
                     </select>
                   </Field>
                 ))}
-                {c.service_options?.length ? (
-                  <>
-                    <Field label={t("service")}>
-                      <select
-                        disabled={busy}
-                        value={review.service}
-                        onChange={(e) =>
-                          setReview({ ...review, service: e.target.value })
-                        }
-                      >
-                        <option value="">
-                          {c.service || c.selected_service || t("choose")}
-                        </option>
-                        {c.service && (
-                          <option value="unassigned">{t("unassigned")}</option>
-                        )}
-                        {c.service_options.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </Field>
-                    {c.service_options.map((s) => (
-                      <a
-                        className="service-link"
-                        key={s.id}
-                        href={link(s.url)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {s.name}
-                        <ArrowUpRight size={14} />
-                      </a>
-                    ))}
-                  </>
-                ) : null}
+                <ServiceRouting
+                  context={review.service_context || c.service_context || "unknown"}
+                  options={c.service_options || []}
+                  current={c.service || c.selected_service || undefined}
+                  selection={review.service}
+                  busy={busy}
+                  pending={Boolean(review.category || review.urgency || review.service_context)}
+                  onContext={v => setReview({ ...review, service_context: v === (c.service_context || "unknown") ? "" : v, service: "" })}
+                  onSelect={service => setReview({ ...review, service })}
+                />
                 <Field label={t("reviewFeedback")}>
                   <select
                     disabled={busy}

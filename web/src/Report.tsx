@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { useContext, useState } from "react";
 import {
   ArrowRight,
@@ -177,7 +178,10 @@ export default function Report() {
     <div className="narrow">
       <Breadcrumb to="#/explore" word="explore" />
       <div className="page-head">
-        <h1>{proposal ? t("continue") : t("newReport")}</h1>
+        <div className="page-intro">
+          <h1>{proposal ? t("continue") : t("newReport")}</h1>
+          <PageOrientation topic="report" />
+        </div>
       </div>
       <Notice error={error} />
       {!proposal ? (

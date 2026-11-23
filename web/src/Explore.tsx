@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { useContext, useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
@@ -93,7 +94,10 @@ export default function Explore({ query }: { query: Filters }) {
   return (
     <>
       <div className="page-head">
-        <h1>{t("explore")}</h1>
+        <div className="page-intro">
+          <h1>{t("explore")}</h1>
+          <PageOrientation topic="explore" />
+        </div>
         <SourceSelect
           value={source}
           onChange={(s) => {
