@@ -21,9 +21,13 @@ class FixtureWorker(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.headers.get("Authorization") != "Bearer test-only-secret":
+            return self.send_error(401)
         self.reply({"model_revision": self.server.rev, "directions": self.server.dirs})
 
     def do_POST(self):
+        if self.headers.get("Authorization") != "Bearer test-only-secret":
+            return self.send_error(401)
         data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         self.server.calls.append(data)
         time.sleep(0.15)
@@ -83,7 +87,7 @@ class TranslationTests(unittest.TestCase):
                 patch("main.engine", engine),
                 patch("report_translation.engine", engine),
                 patch.dict(
-                    os.environ, TRANSLATOR_URL=f"http://127.0.0.1:{server.server_port}"
+                    os.environ, MT_INTERNAL_TOKEN="test-only-secret", TRANSLATOR_URL=f"http://127.0.0.1:{server.server_port}"
                 ),
             ):
                 api = TestClient(app)
@@ -203,6 +207,8 @@ class TranslationTests(unittest.TestCase):
                 with patch.dict(os.environ, TRANSLATOR_URL=""):
                     self.assertEqual(translate().status_code, 422)
                     self.assertEqual(translate("ar", "seed-one", "seed").json()["kind"], "stored")
+                with patch.dict(os.environ, TRANSLATOR_URL="http://worker:8001"):
+                    self.assertEqual(private_origin(), "http://worker:8001")
                 with patch.dict(os.environ, TRANSLATOR_URL="https://example.org"):
                     with self.assertRaises(HTTPException):
                         private_origin()

@@ -4,3 +4,10 @@
 worker/__pycache__
 worker/**/__pycache__
 worker/*.pyc
+!translator
+translator/*
+!translator/runtime.py
+!translator/requirements.txt
+!translator/fetch_control.py
+!translator/control.json
+!translator/observation-policy.json

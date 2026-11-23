@@ -23,6 +23,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r api/requirements.txt
       - run: python -m compileall -q api worker
+      - run: python -m unittest worker.test_translation_host
       - run: PYTHONPATH=. python api/test_contracts.py
       - run: PYTHONPATH=api:. python api/test_service_directory.py
       - run: python api/test_report_translation.py
