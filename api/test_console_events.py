@@ -43,7 +43,7 @@ class ConsoleTest(unittest.TestCase):
 
     def test_correlation(self):
         cid = str(uuid.uuid4())
-        headers = {"X-Correlation-ID": cid}
+        headers = {"X-Correlation-ID": cid, "X-UI-Language": "ar"}
         with self.capture() as out:
             self.assertEqual(
                 self.client.post(
@@ -58,6 +58,7 @@ class ConsoleTest(unittest.TestCase):
             self.assertEqual(detail.status_code, 404)
             self.assertEqual(detail.headers["X-Correlation-ID"], cid)
         rows = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertTrue(all(r["uiLanguage"] == "ar" for r in rows))
         self.assertEqual([r["event"] for r in rows], ["ui", "operation", "api"])
         self.assertTrue(
             all(r["correlationId"] == cid and r["durationMs"] >= 0 for r in rows)
@@ -139,13 +140,43 @@ class ConsoleTest(unittest.TestCase):
             )
         )
 
+    def test_language_allowlist(self):
+        values = [
+            "en",
+            "ar",
+            "th",
+            "hi",
+            "ur",
+            "ar-AE",
+            "AR",
+            "unsupported-value",
+            None,
+        ]
+        with self.capture() as out:
+            for value in values:
+                headers = {"Accept-Language": "private-preference"}
+                if value is not None:
+                    headers["X-UI-Language"] = value
+                self.client.get("/api/health", headers=headers)
+            self.client.get(
+                "/api/health",
+                headers=[("X-UI-Language", "ar"), ("X-UI-Language", "en")],
+            )
+        self.assertEqual(
+            [json.loads(line)["uiLanguage"] for line in out.getvalue().splitlines()],
+            values[:5] + [None] * 5,
+        )
+        self.assertNotRegex(
+            out.getvalue(), "unsupported-value|private-preference|ar-AE"
+        )
+
     def test_browser_preflight(self):
         response = self.client.options(
             "/api/ui-events",
             headers={
                 "Origin": "http://localhost:5173",
                 "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "X-Correlation-ID,Content-Type",
+                "Access-Control-Request-Headers": "X-Correlation-ID,X-UI-Language,Content-Type",
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -154,6 +185,9 @@ class ConsoleTest(unittest.TestCase):
         )
         self.assertIn(
             "x-correlation-id", response.headers["Access-Control-Allow-Headers"].lower()
+        )
+        self.assertIn(
+            "x-ui-language", response.headers["Access-Control-Allow-Headers"].lower()
         )
         denied = self.client.options(
             "/api/ui-events",

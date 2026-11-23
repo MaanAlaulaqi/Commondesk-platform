@@ -28,6 +28,8 @@ MAX_EVENTS_PER_MINUTE = 600
 UUID4 = re.compile(
     rb"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", re.I
 )
+UI_LANGUAGES = {b"en", b"ar", b"th", b"hi", b"ur"}
+ui_language = ContextVar("ui_language", default=None)
 correlation_id = ContextVar("correlation_id", default=None)
 logger = logging.getLogger("commondesk.console")
 if not logger.handlers:
@@ -39,7 +41,12 @@ logger.propagate = False
 def emit(event, **fields):
     logger.info(
         json.dumps(
-            {"event": event, "correlationId": correlation_id.get(), **fields},
+            {
+                "event": event,
+                "correlationId": correlation_id.get(),
+                "uiLanguage": ui_language.get(),
+                **fields,
+            },
             separators=(",", ":"),
         )
     )
@@ -97,6 +104,13 @@ class RequestConsole:
         supplied = [v for k, v in scope["headers"] if k == b"x-correlation-id"]
         valid = len(supplied) == 1 and UUID4.fullmatch(supplied[0]) is not None
         cid = supplied[0].decode("ascii").lower() if valid else str(uuid.uuid4())
+        languages = [v for k, v in scope["headers"] if k == b"x-ui-language"]
+        lang = (
+            languages[0].decode("ascii")
+            if len(languages) == 1 and languages[0] in UI_LANGUAGES
+            else None
+        )
+        language_token = ui_language.set(lang)
         token = correlation_id.set(cid)
         scope["commondesk_valid_id"] = valid
         started = time.monotonic()
@@ -130,6 +144,7 @@ class RequestConsole:
                 fields["action"] = scope["commondesk_action"]
             emit("ui" if is_event else "api", **fields)
             correlation_id.reset(token)
+            ui_language.reset(language_token)
 
 
 @router.post("/api/ui-events", status_code=204)
@@ -145,6 +160,7 @@ async def ui_event(request: Request):
     raw = await request.body()
     if len(raw) > MAX_EVENT_BYTES:
         raise HTTPException(413, "Action too large.")
+
     def unique_keys(pairs):
         result = dict(pairs)
         if len(result) != len(pairs):

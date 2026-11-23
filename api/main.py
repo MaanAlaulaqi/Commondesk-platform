@@ -127,7 +127,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[v.strip() for v in origins if v.strip()],
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Idempotency-Key", "X-Correlation-ID"],
+    allow_headers=["Content-Type", "Idempotency-Key", "X-Correlation-ID", "X-UI-Language"],
     expose_headers=["X-Correlation-ID"],
 )
 app.add_middleware(RequestConsole)
