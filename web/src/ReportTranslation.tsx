@@ -3,7 +3,7 @@ import { ApiError, langs, request, type Case } from "./client";
 import { useWords } from "./locale";
 import { Field } from "./ui";
 
-type Result = { kind: "stored" | "machine"; text: string };
+type Result = { kind: "stored" | "machine"; text: string; attribution?: "machine" };
 
 export function LanguageSelect({
   label,
@@ -75,7 +75,7 @@ export function ReportTranslation({
     return () => controller.abort();
   }, [source, id, target, originalLanguage, stored, key]);
 
-  const result = stored
+  const result: Result | null | undefined = stored
     ? { kind: "stored", text: stored }
     : reply?.key === key
       ? reply.result
@@ -98,7 +98,9 @@ export function ReportTranslation({
                 {t(
                   result.kind === "stored"
                     ? "storedTranslation"
-                    : "machineTranslation",
+                    : result.attribution === "machine"
+                      ? "ordinaryMachineTranslation"
+                      : "machineTranslation",
                 )}
               </small>
               <blockquote lang={target} dir="auto">

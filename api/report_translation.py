@@ -14,16 +14,11 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 
+AR_EN_COACHED_REVISION = "1e953142f1d21abdb0fc88c7ebf33d96de21be3b77c39337fa0713d5054a10b4"
+
+
 def private_origin():
     origin = os.getenv("TRANSLATOR_URL", "").rstrip("/")
-    expiry = os.getenv("TRANSLATOR_EXPIRES_AT")
-    if expiry is not None:
-        try:
-            expired = time.time() >= int(expiry)
-        except ValueError:
-            expired = True
-        if expired:
-            raise HTTPException(422, "Translation observation window closed")
     if not origin:
         raise HTTPException(422, "Machine translation is disabled")
     parsed = urlsplit(origin)
@@ -65,7 +60,11 @@ def translate_report(record, target):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     with httpx.Client(base_url=origin, trust_env=False, timeout=45, headers=headers) as client:
         try:
-            manifest = client.get("/manifest", timeout=4)
+            manifest = client.get(
+                "/manifest", params={"source_language": source_lang, "target_language": target}, timeout=4
+            )
+            if manifest.status_code == 404:
+                manifest = client.get("/manifest", timeout=4)
             manifest.raise_for_status()
             manifest = manifest.json()
             revision = manifest["model_revision"]
@@ -88,7 +87,10 @@ def translate_report(record, target):
                 "target_language": target,
                 "model_revision": revision,
             }
-            return cached_translation(client, scope, original)
+            result = cached_translation(client, scope, original)
+            if (source_lang, target, revision) == ("ar", "en", AR_EN_COACHED_REVISION):
+                result["attribution"] = "machine"
+            return result
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             raise HTTPException(503, "Translation temporarily unavailable") from None
 

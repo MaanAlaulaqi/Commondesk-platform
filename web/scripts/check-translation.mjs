@@ -35,7 +35,11 @@ try {
     const path = new URL(req.url()).pathname;
     let json = {};
     let status = 200;
-    if (path.endsWith("/translation")) {
+    if (path === "/api/cases/arabic/translation") {
+      json = { kind: "machine", attribution: "machine", text: "Synthetic English wording" };
+    } else if (path === "/api/cases/arabic") {
+      json = { ...item, id: "arabic", original_language: "ar", original_text: "نص بلاغ تجريبي" };
+    } else if (path.endsWith("/translation")) {
       const { source, target_language: target } = req.postDataJSON();
       requests.push({ source, target });
       if (target === "hi") await slow;
@@ -113,6 +117,12 @@ try {
   await page.getByText("Stored translation", { exact: true }).waitFor();
   await page.getByText("Stored illustration").waitFor();
   assert.equal(requests.length, before);
+  await page.goto(base + "#/case/arabic?source=live");
+  await report.selectOption("en");
+  await page.getByText("Machine translation", { exact: true }).waitFor();
+  await page.getByText("Synthetic English wording", { exact: true }).waitFor();
+  assert.equal(await page.getByText("نص بلاغ تجريبي", { exact: true }).isVisible(), true);
+  assert.equal(await page.getByText(/Experimental machine translation/).count(), 0);
   await page.goto(base + "#/case/missing?source=archive");
   await page.getByText(/original complaint text is unavailable/).waitFor();
   assert.equal(await report.count(), 0);

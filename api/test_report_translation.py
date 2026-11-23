@@ -11,7 +11,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from fastapi.testclient import TestClient
 
@@ -23,7 +23,10 @@ class FixtureWorker(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.headers.get("Authorization") != "Bearer test-only-secret":
             return self.send_error(401)
-        self.reply({"model_revision": self.server.rev, "directions": self.server.dirs})
+        params = parse_qs(urlsplit(self.path).query)
+        pair = (params.get("source_language", [None])[0], params.get("target_language", [None])[0])
+        revision = self.server.active_revision if pair == ("ar", "en") else self.server.rev
+        self.reply({"model_revision": revision, "directions": self.server.dirs})
 
     def do_POST(self):
         if self.headers.get("Authorization") != "Bearer test-only-secret":
@@ -33,7 +36,7 @@ class FixtureWorker(BaseHTTPRequestHandler):
         time.sleep(0.15)
         self.reply(
             {
-                "model_revision": self.server.response_revision or self.server.rev,
+                "model_revision": self.server.response_revision or (self.server.active_revision if data["source_language"] == "ar" and data["target_language"] == "en" else self.server.rev),
                 "text": "synthetic translation",
             }
         )
@@ -50,7 +53,7 @@ class TranslationTests(unittest.TestCase):
         from db import cases, meta, report_translations, views
         from fastapi import HTTPException
         from main import app
-        from report_translation import private_origin
+        from report_translation import AR_EN_COACHED_REVISION, private_origin
         from sqlalchemy import create_engine
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -77,6 +80,7 @@ class TranslationTests(unittest.TestCase):
             meta.create_all(engine)
             server = ThreadingHTTPServer(("127.0.0.1", 0), FixtureWorker)
             server.rev, server.response_revision, server.dirs = "r1", None, ["en:th"]
+            server.active_revision = AR_EN_COACHED_REVISION
             server.calls = []
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
@@ -200,10 +204,24 @@ class TranslationTests(unittest.TestCase):
                     )
                 self.assertFalse(translate().json()["cached"])
                 self.assertTrue(translate().json()["cached"])
-                for deadline in ("1", "invalid"):
+                for deadline in ("1", "invalid"):  # Retired timed observation switch.
                     with patch.dict(os.environ, TRANSLATOR_EXPIRES_AT=deadline):
-                        self.assertEqual(translate().status_code, 422)
+                        self.assertEqual(translate().status_code, 200)
                         self.assertEqual(translate("ar", "seed-one", "seed").json()["kind"], "stored")
+                with engine.begin() as db:
+                    db.execute(cases.insert().values(**{**row, "id": "arabic-original", "language": "ar"}))
+                server.dirs = ["en:th", "ar:en"]
+                for cached in (False, True):
+                    coached = translate("en", "arabic-original").json()
+                    self.assertEqual(coached["attribution"], "machine")
+                    self.assertEqual(coached["cached"], cached)
+                    self.assertEqual(coached["model_revision"], AR_EN_COACHED_REVISION)
+                server.active_revision = server.rev
+                fallback = translate("en", "arabic-original").json()
+                self.assertNotIn("attribution", fallback)
+                self.assertFalse(fallback["cached"])
+                server.active_revision = AR_EN_COACHED_REVISION
+                self.assertTrue(translate("en", "arabic-original").json()["cached"])
                 with patch.dict(os.environ, TRANSLATOR_URL=""):
                     self.assertEqual(translate().status_code, 422)
                     self.assertEqual(translate("ar", "seed-one", "seed").json()["kind"], "stored")
