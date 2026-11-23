@@ -19,6 +19,8 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile
+      args:
+        MT_BUILD_TRANSLATOR: ${MT_BUILD_TRANSLATOR:-0}
     environment:
       PORT: 8001
       QDRANT_URL: http://qdrant:6333

@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import signal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
@@ -11,6 +12,7 @@ from .encoders import MODEL_DIR, PINS
 from .grounding import answer
 from .intake import proposal
 from .search import Store, Unavailable
+from .translation_host import TranslationError, TranslationHost, WRITE_LIMIT
 from .seed import publish
 
 
@@ -27,6 +29,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            if self.path == "/manifest":
+                self.server.translation.authorize(self.headers.get("Authorization"))
+                return self.reply(200, self.server.translation.manifest())
             if self.path in ("/health", "/healthz"):
                 return self.reply(200, {"ok": True})
             if self.path in ("/ready", "/readyz"):
@@ -49,6 +54,8 @@ class Handler(BaseHTTPRequestHandler):
                     )
                 return self.reply(200, detail)
             return self.reply(404, {"detail": "Unknown route"})
+        except TranslationError as exc:
+            return self.reply(exc.status, {"detail": str(exc)})
         except (ValueError, KeyError):
             return self.reply(404, {"detail": "Unknown archive case"})
         except Exception:
@@ -56,6 +63,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
+            if self.path == "/translate":
+                self.server.translation.authorize(self.headers.get("Authorization"))
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                except ValueError:
+                    raise TranslationError(
+                        413, "Invalid translation request size"
+                    ) from None
+                if not 0 < length <= WRITE_LIMIT:
+                    return self.reply(
+                        413, {"detail": "Invalid translation request size"}
+                    )
+                try:
+                    body = json.loads(self.rfile.read(length))
+                except (ValueError, UnicodeError):
+                    raise TranslationError(422, "Invalid translation request") from None
+                return self.reply(200, self.server.translation.translate(body))
             n = int(self.headers.get("Content-Length", "0"))
             if not 0 < n <= 13 * 1024 * 1024:
                 return self.reply(413, {"detail": "Invalid request size"})
@@ -97,6 +121,8 @@ class Handler(BaseHTTPRequestHandler):
                     else:
                         return self.reply(404, {"detail": "Unknown route"})
             return self.reply(200, result)
+        except TranslationError as exc:
+            return self.reply(exc.status, {"detail": str(exc)})
         except (ValueError, KeyError, TypeError) as exc:
             return self.reply(422, {"detail": str(exc)[:180]})
         except Unavailable as exc:
@@ -118,9 +144,16 @@ def main():
     )
     server.lock = Lock()
     server.store = Store()
+    server.translation = TranslationHost(os.environ)
+
+    def terminate(_signal, _frame):
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, terminate)
     try:
         server.serve_forever()
     finally:
+        server.translation.close()
         server.store.client.close()
         server.server_close()
 

@@ -36,7 +36,7 @@ def private_origin():
         or parsed.fragment
         or parsed.path
         or not (
-            host in {"localhost", "127.0.0.1", "::1", "translator"}
+            host in {"localhost", "127.0.0.1", "::1", "translator", "worker"}
             or host.endswith(".railway.internal")
         )
     ):
@@ -60,7 +60,10 @@ def translate_report(record, target):
     if stored and stored.strip():
         return {"kind": "stored", "text": stored}
 
-    with httpx.Client(base_url=private_origin(), trust_env=False, timeout=45) as client:
+    origin = private_origin()
+    token = os.getenv("MT_INTERNAL_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    with httpx.Client(base_url=origin, trust_env=False, timeout=45, headers=headers) as client:
         try:
             manifest = client.get("/manifest", timeout=4)
             manifest.raise_for_status()

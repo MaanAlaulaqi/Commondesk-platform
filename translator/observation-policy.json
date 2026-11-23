@@ -1,0 +1,25 @@
+{
+  "model_revision": "1e9bd77f519acde8a923db199e1b8ba604e90fd4ec5795b42440c847dc87445d",
+  "directions": [
+    "en:ar",
+    "en:hi",
+    "en:ur",
+    "en:th",
+    "ar:en",
+    "ar:hi",
+    "ar:ur",
+    "ar:th",
+    "hi:en",
+    "hi:ar",
+    "hi:ur",
+    "hi:th",
+    "ur:en",
+    "ur:ar",
+    "ur:hi",
+    "ur:th",
+    "th:en",
+    "th:ar",
+    "th:hi",
+    "th:ur"
+  ]
+}
