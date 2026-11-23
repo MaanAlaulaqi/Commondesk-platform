@@ -9,8 +9,8 @@ if [[ -n ${1:-} ]]; then
     cp "$1/reports.jsonl" "$1/manifest.json" "$scratch/"
     cp -R "$1/media" "$scratch/"
     cat >> "$scratch/Dockerfile" <<'DOCKER'
-COPY reports.jsonl manifest.json /opt/demo/
-COPY media /opt/demo/media/
+COPY --chown=app:app reports.jsonl manifest.json /opt/demo/
+COPY --chown=app:app media /opt/demo/media/
 CMD ["sh","-c","python seed.py /opt/demo && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 DOCKER
 fi
