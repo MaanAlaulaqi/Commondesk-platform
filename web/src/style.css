@@ -1275,3 +1275,46 @@ blockquote {
   color: var(--sub);
   margin-bottom: 12px;
 }
+
+.page-intro,
+.detail-head > div {
+  min-width: 0;
+}
+.page-summary {
+  max-inline-size: 68ch;
+  margin: 0.4rem 0 0;
+  color: var(--sub);
+  line-height: 1.5;
+}
+.page-help {
+  max-inline-size: 65ch;
+}
+button.help-trigger {
+  min-height: 36px;
+  margin-block-start: 2px;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-align: start;
+}
+.help-content {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 0.8rem;
+  border-inline-start: 2px solid var(--ink);
+  line-height: 1.5;
+}
+@media (max-width: 700px) {
+  .page-head:has(.page-summary) {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .page-head:has(.page-summary) .page-intro {
+    flex-basis: 100%;
+  }
+  button.help-trigger {
+    min-height: 44px;
+  }
+}

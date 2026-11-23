@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { useContext, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { type CaseList, type Filters, post, upload } from "./client";
@@ -49,7 +50,10 @@ export default function Search({ query }: { query: Filters }) {
   return (
     <>
       <div className="page-head">
-        <h1>{t("search")}</h1>
+        <div className="page-intro">
+          <h1>{t("search")}</h1>
+          <PageOrientation topic="search" />
+        </div>
         <SourceSelect
           value={f.source}
           onChange={(s) => {
