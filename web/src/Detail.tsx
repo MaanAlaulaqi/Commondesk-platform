@@ -1,5 +1,5 @@
 import { PageOrientation } from "./PageOrientation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check } from "lucide-react";
 import {
   type Case,
@@ -104,6 +104,7 @@ export default function DetailView({
     [kind, setKind] = useState("status"),
     [answer, show] = useState<Answer | null>(null),
     [related, similar] = useState<CaseList | null>(null);
+  const answerVersion = useRef(0);
   const facets = useLoad<Facets>(
     query.source === "archive" ? null : "/facets?source=" + encodeURIComponent(query.source || "all"),
   );
@@ -145,22 +146,26 @@ export default function DetailView({
       setBusy(false);
     }
   }
+  function clearAnswer() {
+    answerVersion.current += 1;
+    show(null);
+  }
   async function ask() {
+    const version = ++answerVersion.current;
     setBusy(true);
     err("");
     show(null);
     try {
-      show(
-        await post<Answer>("/answer", {
-          case_id: id,
-          source: c?.source,
-          kind,
-          question,
-          language: answerLanguage,
-        }),
-      );
+      const reply = await post<Answer>("/answer", {
+        case_id: id,
+        source: c?.source,
+        kind,
+        question,
+        language: answerLanguage,
+      });
+      if (version === answerVersion.current) show(reply);
     } catch (e) {
-      err((e as Error).message);
+      if (version === answerVersion.current) err((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -368,7 +373,7 @@ export default function DetailView({
                   value={kind}
                   onChange={(e) => {
                     setKind(e.target.value);
-                    show(null);
+                    clearAnswer();
                   }}
                 >
                   <option value="status">{t("status")}</option>
@@ -378,14 +383,17 @@ export default function DetailView({
               </Field>
               <LanguageSelect label={t("answerLanguage")} value={answerLanguage} onChange={value => {
                 setAnswerLanguage(value);
-                show(null);
+                clearAnswer();
               }} />
               <Field label={t("enterQuestion")}>
                 <textarea
                   rows={2}
                   value={question}
                   dir="auto"
-                  onChange={(e) => setQuestion(e.target.value)}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    clearAnswer();
+                  }}
                 />
               </Field>
               <button disabled={busy}>

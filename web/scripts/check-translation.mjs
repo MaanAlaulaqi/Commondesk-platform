@@ -28,6 +28,8 @@ try {
   const slow = new Promise((resolve) => {
     resolveSlow = resolve;
   });
+  let releaseAnswer;
+  const pendingAnswer = new Promise(resolve => { releaseAnswer = resolve; });
   await page.route("**/api/**", async (route) => {
     const req = route.request();
     const path = new URL(req.url()).pathname;
@@ -41,8 +43,10 @@ try {
       if (target === "th") status = 422;
       json = { kind: "machine", text: target + " test output" };
     } else if (path.endsWith("/answer")) {
-      requests.push({ answerLanguage: req.postDataJSON().language });
-      json = { outcome: "answer", text: "Synthetic reply" };
+      const language = req.postDataJSON().language;
+      requests.push({ answerLanguage: language });
+      if (language === "en") await pendingAnswer;
+      json = { outcome: "answer", text: "Synthetic reply " + language };
     } else if (path.endsWith("/cases/alpha")) {
       json = item;
     } else if (path.endsWith("/cases/stored")) {
@@ -77,10 +81,17 @@ try {
   resolveSlow();
   await page.getByText("Machine translation", { exact: true }).waitFor();
   assert.equal(await answer.inputValue(), "en");
+  const askForm = page.locator("form").filter({ has: answer });
+  const first = page.waitForRequest(req => new URL(req.url()).pathname.endsWith("/answer"));
+  await askForm.locator("button").click();
+  await first;
   await answer.selectOption("th");
+  releaseAnswer();
+  await askForm.locator("button:enabled").waitFor();
+  assert.equal(await page.getByText("Synthetic reply en", {exact: true}).count(), 0);
   assert.equal(await report.inputValue(), "ar");
   await page.locator("form").filter({ has: answer }).locator("button").click();
-  await page.getByText("Synthetic reply").waitFor();
+  await page.getByText("Synthetic reply th", {exact: true}).waitFor();
   assert.ok(requests.some((r) => r.answerLanguage === "th"));
   assert.equal(await page.getByText("hi test output").count(), 0);
   await report.selectOption("ur");
