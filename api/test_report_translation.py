@@ -196,6 +196,10 @@ class TranslationTests(unittest.TestCase):
                     )
                 self.assertFalse(translate().json()["cached"])
                 self.assertTrue(translate().json()["cached"])
+                for deadline in ("1", "invalid"):
+                    with patch.dict(os.environ, TRANSLATOR_EXPIRES_AT=deadline):
+                        self.assertEqual(translate().status_code, 422)
+                        self.assertEqual(translate("ar", "seed-one", "seed").json()["kind"], "stored")
                 with patch.dict(os.environ, TRANSLATOR_URL=""):
                     self.assertEqual(translate().status_code, 422)
                     self.assertEqual(translate("ar", "seed-one", "seed").json()["kind"], "stored")
