@@ -112,6 +112,10 @@ async function mock(context) {
   await context.route("**/*", async (route) => {
     const req = route.request(),
       url = new URL(req.url());
+    if (url.origin === origin && url.pathname === "/api/ui-events" && req.method() === "POST") {
+      assert.deepEqual(Object.keys(req.postDataJSON()), ["action"]);
+      return route.fulfill({ status: 204 });
+    }
     if (url.hostname === "tile.openstreetmap.org")
       return route.fulfill({ contentType: "image/png", body: transparentTile });
     if (url.origin !== origin) {
