@@ -7,6 +7,7 @@ import signal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
+from urllib.parse import parse_qs, urlsplit
 
 from .encoders import MODEL_DIR, PINS
 from .grounding import answer
@@ -29,9 +30,22 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         try:
-            if self.path == "/manifest":
+            path = urlsplit(self.path)
+            if path.path == "/manifest":
                 self.server.translation.authorize(self.headers.get("Authorization"))
-                return self.reply(200, self.server.translation.manifest())
+                if not path.query:
+                    return self.reply(200, self.server.translation.manifest())
+                query = parse_qs(path.query, keep_blank_values=True)
+                if set(query) != {"source_language", "target_language"} or any(
+                    len(v) != 1 for v in query.values()
+                ):
+                    raise TranslationError(422, "Invalid language pair")
+                return self.reply(
+                    200,
+                    self.server.translation.manifest(
+                        query["source_language"][0], query["target_language"][0]
+                    ),
+                )
             if self.path in ("/health", "/healthz"):
                 return self.reply(200, {"ok": True})
             if self.path in ("/ready", "/readyz"):

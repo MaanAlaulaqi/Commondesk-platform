@@ -11,3 +11,8 @@ translator/*
 !translator/fetch_control.py
 !translator/control.json
 !translator/observation-policy.json
+!translator/coached-ar-en.json
+!translator/coached-ar-en-policy.json
+!translator/fetch_coached.py
+!translator/coached-build
+!translator/coached-build/.gitkeep

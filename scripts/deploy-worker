@@ -3,8 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-mkdir -p "$scratch/worker" "$scratch/translator"
-cp translator/{runtime.py,requirements.txt,fetch_control.py,control.json,observation-policy.json} "$scratch/translator/"
+mkdir -p "$scratch/worker" "$scratch/translator/coached-build"
+"${HF_PYTHON:-python3}" translator/prepare_coached.py "$scratch/translator/coached-build/downloads.json"
+cp translator/{runtime.py,requirements.txt,fetch_control.py,fetch_coached.py,control.json,observation-policy.json,coached-ar-en.json,coached-ar-en-policy.json} "$scratch/translator/"
 cp worker/*.py worker/*.json worker/*.txt "$scratch/worker/"
 cp worker/Dockerfile "$scratch/Dockerfile"
 railway up "$scratch" --path-as-root --service commondesk-worker --environment production --detach

@@ -47,6 +47,12 @@ class TranslationHost:
         self.policy_path = Path(
             env.get("MT_DIRECTION_POLICY", "/policy.json")
         ).resolve()
+        self.coached_enabled = env.get("MT_AR_EN_COACHED") == "1"
+        self.coached_dir = Path(
+            env.get("MT_COACHED_MODEL_DIR", "/models/translation-ar-en")
+        ).resolve()
+        self.coached_manifest = self.runtime_dir / "coached-ar-en.json"
+        self.coached_policy = self.runtime_dir / "coached-ar-en-policy.json"
         self.python = env.get("MT_PYTHON", sys.executable)
         self.threads = env.get("MT_THREADS", "2")
         try:
@@ -77,19 +83,36 @@ class TranslationHost:
         ):
             raise TranslationError(401, "Private translation authorization required")
 
-    def manifest(self):
+    def _release(self, source_language, target_language):
+        if source_language is not None or target_language is not None:
+            if (
+                source_language not in LANGUAGES
+                or target_language not in LANGUAGES
+                or source_language == target_language
+            ):
+                raise TranslationError(422, "Invalid language pair")
+        if self.coached_enabled and (source_language, target_language) == ("ar", "en"):
+            return self.coached_dir, self.coached_manifest, self.coached_policy
+        return self.model_dir, self.manifest_path, self.policy_path
+
+    def manifest(self, source_language=None, target_language=None):
+        release = self._release(source_language, target_language)
+        return self._manifest(release)
+
+    def _manifest(self, release):
+        model_dir, manifest_path, policy_path = release
         # The cache identifies a specific release. This path reads metadata only. The child
         # independently verifies every mounted weight digest before accepting any report.
         try:
-            files = json.loads(self.manifest_path.read_text())["sha256"]
-            policy = json.loads(self.policy_path.read_text())
+            files = json.loads(manifest_path.read_text())["sha256"]
+            policy = json.loads(policy_path.read_text())
             if not isinstance(files, dict) or not WEIGHTS <= files.keys():
                 raise ValueError
             for name, digest in files.items():
                 if (
                     Path(name).name != name
                     or not re.fullmatch("[0-9a-f]{64}", digest)
-                    or not (self.model_dir / name).is_file()
+                    or not (model_dir / name).is_file()
                 ):
                     raise ValueError
             identity = {
@@ -112,7 +135,8 @@ class TranslationHost:
         except (OSError, KeyError, TypeError, ValueError):
             raise unavailable() from None
 
-    def _start(self):
+    def _start(self, release):
+        model_dir, manifest_path, policy_path = release
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
             listener.bind(("127.0.0.1", 0))
             # A bound socket handed directly to uvicorn avoids a port-allocation race.
@@ -124,9 +148,9 @@ class TranslationHost:
                 if key in os.environ
             }
             env.update(
-                MT_MODEL_DIR=str(self.model_dir),
-                MT_MODEL_MANIFEST=str(self.manifest_path),
-                MT_DIRECTION_POLICY=str(self.policy_path),
+                MT_MODEL_DIR=str(model_dir),
+                MT_MODEL_MANIFEST=str(manifest_path),
+                MT_DIRECTION_POLICY=str(policy_path),
                 MT_THREADS=self.threads,
                 PYTHONDONTWRITEBYTECODE="1",
                 HF_HUB_OFFLINE="1",
@@ -205,7 +229,7 @@ class TranslationHost:
         self.idle_timer = timer
         timer.start()
 
-    def _ready(self, manifest, deadline):
+    def _ready(self, release, manifest, deadline):
         if (
             self.child is not None
             and self.child.poll() is None
@@ -213,7 +237,7 @@ class TranslationHost:
         ):
             return
         self._stop()
-        self._start()
+        self._start(release)
         while (
             not self.closing.is_set()
             and self.child.poll() is None
@@ -246,7 +270,8 @@ class TranslationHost:
         if not self.slot.acquire(timeout=2):
             raise TranslationError(429, "Translation worker is busy")
         try:
-            manifest = self.manifest()
+            release = self._release(body["source_language"], body["target_language"])
+            manifest = self._manifest(release)
             if (
                 body["source_language"] + ":" + body["target_language"]
                 not in manifest["directions"]
@@ -258,7 +283,7 @@ class TranslationHost:
                 raise unavailable()
             deadline = time.monotonic() + 40
             try:
-                self._ready(manifest, deadline)
+                self._ready(release, manifest, deadline)
                 if self.closing.is_set() or time.monotonic() >= deadline:
                     raise unavailable()
                 data = json.dumps(body, ensure_ascii=False).encode()
