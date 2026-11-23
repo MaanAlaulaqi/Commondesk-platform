@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py templates.json ./
 RUN useradd --create-home app && mkdir /app/data && chown app /app/data
 USER app
-CMD ["sh","-c","exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh","-c","exec uvicorn main:app --no-access-log --host 0.0.0.0 --port ${PORT:-8000}"]

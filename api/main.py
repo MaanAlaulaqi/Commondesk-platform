@@ -4,6 +4,7 @@ import base64
 import hashlib
 import io
 import json
+import logging
 import os
 import re
 import threading
@@ -25,6 +26,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 
 import jobs
+from console_events import MAX_EVENT_BYTES, RequestConsole, operation, router as console_router
 from report_translation import translate_report
 from answers import render_answer
 from db import cases, engine, events, insert_for, media, migrate, now, views
@@ -45,6 +47,8 @@ from store import (
 
 @asynccontextmanager
 async def lifespan(app):
+    # Structured console records replace the raw Uvicorn client/address/URL access log.
+    logging.getLogger("uvicorn.access").disabled = True
     migrate()
     stop = threading.Event()
     thread = threading.Thread(
@@ -62,12 +66,6 @@ app = FastAPI(title="CommonDesk", version="1.0", lifespan=lifespan)
 origins = os.environ.get(
     "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
 ).split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[v.strip() for v in origins if v.strip()],
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Idempotency-Key"],
-)
 MAX_MEDIA = 8 * 1024 * 1024
 
 
@@ -80,7 +78,8 @@ class BoundRequests:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http" or scope["method"] != "POST":
             return await self.app(scope, receive, send)
-        key = scope.get("client", ("unknown",))[0]
+        is_event = scope["path"] == "/api/ui-events"
+        key = (scope.get("client", ("unknown",))[0], is_event)
         clock = time.monotonic()
         if clock - self.last_clean > 60:
             self.requests = {
@@ -96,6 +95,8 @@ class BoundRequests:
             )(scope, receive, send)
         bucket.append(clock)
         maximum = MAX_MEDIA + 65536 if scope["path"] == "/api/media" else 65536
+        if is_event:
+            maximum = MAX_EVENT_BYTES
         body = bytearray()
         while True:
             message = await receive()
@@ -122,6 +123,15 @@ class BoundRequests:
 
 
 app.add_middleware(BoundRequests)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[v.strip() for v in origins if v.strip()],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Idempotency-Key", "X-Correlation-ID"],
+    expose_headers=["X-Correlation-ID"],
+)
+app.add_middleware(RequestConsole)
+app.include_router(console_router)
 
 
 class Intake(BaseModel):
@@ -189,6 +199,7 @@ def request_digest(value):
     ).hexdigest()
 
 
+@operation
 def proposed(body):
     try:
         response = jobs.worker(

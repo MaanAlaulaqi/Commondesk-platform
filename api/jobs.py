@@ -11,12 +11,14 @@ import httpx
 from sqlalchemy import case, select
 from db import cases, engine, insert_for, media, queue
 from store import summary
+from console_events import operation
 
 log = logging.getLogger("uvicorn.error")
 LEASE_SECONDS = 30
 WORKER_URL = os.environ.get("WORKER_URL", "http://127.0.0.1:8001").rstrip("/")
 
 
+@operation
 def worker(path, payload, timeout=60):
     r = httpx.post(WORKER_URL + path, json=payload, timeout=timeout)
     r.raise_for_status()
