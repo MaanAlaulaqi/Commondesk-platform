@@ -44,6 +44,29 @@ SERVICE_DIRECTORY = {
 }
 
 
+PRIVATE_GUIDANCE = {
+    "en": "Private directory suggestion: {names}. A directory listing carries no endorsement or official referral.",
+    "ar": "اقتراح من دليل الأعمال الخاصة: {names}. الإدراج في الدليل لا يعني التزكية أو الإحالة الرسمية.",
+    "hi": "निजी सेवा निर्देशिका का सुझाव: {names}। सूची में नाम होना समर्थन या आधिकारिक रेफ़रल नहीं है।",
+    "th": "ตัวเลือกจากไดเรกทอรีธุรกิจเอกชน: {names} การมีชื่อในไดเรกทอรีไม่ได้หมายถึงการรับรองหรือการส่งต่ออย่างเป็นทางการ",
+    "ur": "نجی خدمات کی ڈائریکٹری کی تجویز: {names}۔ فہرست میں شمولیت کسی توثیق یا سرکاری حوالے کی ضمانت نہیں ہے۔",
+}
+FIXTURE_LABEL = {
+    "en": "fictional example",
+    "ar": "مثال خيالي",
+    "hi": "काल्पनिक उदाहरण",
+    "th": "ตัวอย่างสมมติ",
+    "ur": "فرضی مثال",
+}
+INTENT = {
+    "en": "The case history records a routing intention only. No request was sent.",
+    "ar": "يسجل سجل الحالة نية التوجيه فقط. لم يُرسل أي طلب.",
+    "hi": "केस इतिहास में केवल भेजने का इरादा दर्ज है। कोई अनुरोध नहीं भेजा गया।",
+    "th": "ประวัติเคสบันทึกเพียงความตั้งใจในการส่งต่อ ยังไม่มีการส่งคำขอ",
+    "ur": "کیس کی تاریخ میں صرف ارادۂ رجوع درج ہے۔ کوئی درخواست نہیں بھیجی گئی۔",
+}
+
+
 def answer(body):
     lang = body.get("language", "en")
     if lang not in TEXT:
@@ -80,15 +103,74 @@ def answer(body):
     if kind == "guidance":
         service_terms = ("madinati", "مدينتي", "مدینتی", "मदीनती", "มาดินาติ")
         query = (body.get("question") or "").casefold()
-        eligible = any(
-            "dubai_rta_madinati" in (r.get("service_options") or [])
-            or r.get("selected_service") == "dubai_rta_madinati"
-            for r in reports
+        named_rta = any(t in query for t in service_terms)
+        report = (
+            reports[0] if case_id and reports and source in ("live", "seed") else {}
         )
-        if not eligible and (case_id or not any(t in query for t in service_terms)):
+        options = report.get("service_options") or []
+        # Older API callers supplied ID strings for the single verified public passage.
+        eligible = any(
+            o == "dubai_rta_madinati"
+            or (
+                isinstance(o, dict)
+                and o.get("id") == "dubai_rta_madinati"
+                and o.get("kind") == "public_authority"
+            )
+            for o in options
+        )
+        private = [
+            o
+            for o in options
+            if isinstance(o, dict)
+            and o.get("kind") == "private_directory"
+            and isinstance(o.get("id"), str)
+            and o["id"].startswith("private_")
+            and o.get("name")
+        ]
+        selected = report.get("selected_service")
+        event_id = report.get("service_event_id")
+        history = []
+        if (
+            selected
+            and any(isinstance(o, dict) and o.get("id") == selected for o in options)
+            and event_id
+        ):
+            history.append(
+                dict(
+                    id=event_id,
+                    source=source,
+                    href=link + "?event=" + quote(event_id, safe=""),
+                    label=event_id,
+                    excerpt=selected,
+                )
+            )
+        if private and not named_rta:
+            labels = [
+                o["name"]
+                + (" (" + FIXTURE_LABEL[lang] + ")" if o.get("fictional") else "")
+                for o in private
+            ]
+            citations = [
+                dict(
+                    id=o["id"],
+                    source=source,
+                    href=link + "?service=" + quote(o["id"], safe=""),
+                    label=name,
+                    excerpt=name,
+                )
+                for o, name in zip(private, labels)
+            ]
+            text = PRIVATE_GUIDANCE[lang].format(names=", ".join(labels))
+            return {
+                "text": text + (" " + INTENT[lang] if history else ""),
+                "outcome": "guidance",
+                "citations": citations + history,
+            }
+        if not eligible and (case_id or not named_rta):
             return abstain
         return {
-            "text": TEXT[lang][1] if eligible else SERVICE_DIRECTORY[lang],
+            "text": (TEXT[lang][1] if eligible else SERVICE_DIRECTORY[lang])
+            + (" " + INTENT[lang] if history else ""),
             "outcome": "guidance",
             "citations": [
                 {
@@ -99,7 +181,8 @@ def answer(body):
                     "excerpt": "RTA Madinati",
                     "guidance_id": "dubai_rta_madinati",
                 }
-            ],
+            ]
+            + history,
         }
     if not reports or not reports[0].get("text") or not reports[0].get("id"):
         return abstain
