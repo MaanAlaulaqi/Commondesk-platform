@@ -1,0 +1,27 @@
+# Optional self-hosted evaluation worker. The default direction policy is empty.
+services:
+  api:
+    environment:
+      TRANSLATOR_URL: http://translator:8012
+    networks:
+      - default
+      - translation
+  translator:
+    build: ./translator
+    environment:
+      MT_MODEL_DIR: /model
+      MT_MODEL_MANIFEST: /release.json
+      MT_DIRECTION_POLICY: /policy.json
+    volumes:
+      - ${MT_MODEL_DIR:?supply a verified CT2 model directory}:/model:ro
+      - ${MT_MODEL_MANIFEST:-./translator/control.json}:/release.json:ro
+      - ${MT_DIRECTION_POLICY:-./translator/control-policy.json}:/policy.json:ro
+    networks: [translation]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 2
+    mem_limit: 8g
+networks:
+  translation:
+    internal: true

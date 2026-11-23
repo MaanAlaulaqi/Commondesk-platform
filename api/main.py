@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 
 import jobs
+from report_translation import translate_report
 from answers import render_answer
 from db import cases, engine, events, insert_for, media, migrate, now, views
 from service_directory import ServiceContext
@@ -538,6 +539,18 @@ def get_case(
         if source not in ("all", record["source"]):
             raise HTTPException(404, "Case not found in this collection")
         return record
+
+
+class TranslationRequest(BaseModel, extra="forbid"):
+    source: Literal["seed", "live", "archive", "all"]
+    target_language: Literal["en", "ar", "hi", "th", "ur"]
+
+
+@app.post("/api/cases/{cid}/translation")
+def case_translation(cid: str, body: TranslationRequest, response: Response):
+    record = get_case(cid, source=body.source)
+    response.headers["Cache-Control"] = "no-store"
+    return translate_report(record, body.target_language)
 
 
 @app.post("/api/cases/{cid}/review")

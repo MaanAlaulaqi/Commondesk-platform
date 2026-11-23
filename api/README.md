@@ -11,6 +11,7 @@ For the full stack, start with the repository quickstart. For a standalone API, 
 | Explore and Insights | `GET /api/cases`, `/api/map`, and `/api/insights` share source, district, status, category, confirmed urgency, language and Dubai-local date filters. `language` requires that a wording exists. `locale` selects localized list wording with original fallback. The map omits unknown points. `GET /api/facets` lists filter choices. |
 | Search | `POST /api/search` accepts text, a photo ID, or both, plus scoped filters. Archive lookup is read-only. IDs link to verified historical evidence when the source catalog is configured. |
 | Detail and review | `GET /api/cases/{id}` includes original text, translations, proposals and timestamped events. `POST /api/cases/{id}/review` stores decisions independently of the original proposal. A new review can clear a routing choice with `service: "unassigned"`. |
+| Report language | `POST /api/cases/{id}/translation` accepts only `source` and `target_language`. The API resolves the original from the case. Results are labeled `original`, `stored`, or `machine`. |
 | Grounded answers | `POST /api/answer` supports status, report excerpts and approved service guidance. Each linked status event belongs to one case. A source mismatch returns HTTP 404. Guidance links open the official service page. |
 
 ## Data and recovery
@@ -42,3 +43,11 @@ Set `SERVICE_CATALOG_PATH` to a read-only local JSON file of reviewed private op
 | allowed_districts | Optional nonempty array of district names. Restricted entries require an exact saved district match after case folding and trimming. Missing or out-of-area districts cannot qualify. Omit only when reviewed coverage has no district restriction. |
 
 A reviewer must verify business identity, offered service, coverage and source before approving a real entry and enabling it in the local configuration. Enabling one registers an informational directory suggestion. A case-specific answer cites the eligible option in that case and any current selection event. A listing implies neither endorsement nor an official referral.
+
+## Private report translation
+
+Set `TRANSLATOR_URL` to the private worker origin for a qualified release. Supported hosts are loopback, the Compose service named `translator`, and Railway private-network names ending in `.railway.internal`. The client disables environment proxies and redirects. It sends the report text and language codes. The report dropdown starts at the original language. A stored wording can be shown even while inference is unavailable. The independent Answer language control belongs to the Ask form.
+
+For generation and machine-cache reads, the API checks the worker's current model revision and allowed directions. It keys a database entry by collection, case, SHA-256 of the original, source language, target language and model revision. A bounded database lease coordinates concurrent requests. Case text and translations stay in the workspace and private worker network. A missing original, an unconfigured worker, or a closed direction returns HTTP 422. The UI keeps the original visible and explains when the requested translation is unavailable. A worker outage returns HTTP 503 and the UI continues showing the original.
+
+Use `python api/test_report_translation.py` from the repository root for the synthetic SQLite/cache regression. Running the same test against a disposable loopback PostgreSQL server via `MT_TEST_POSTGRES_URL` checks database parity. Run `node web/scripts/check-translation.mjs http://127.0.0.1:5173` against the local UI for the browser paths.
