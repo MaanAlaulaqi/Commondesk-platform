@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+archive=${1:?Usage: scripts/import-seed /path/to/dubai-example-seed-v2.zip}
+python3 - "$archive" <<'PY'
+import hashlib, pathlib, sys, zipfile
+archive = pathlib.Path(sys.argv[1])
+if hashlib.sha256(archive.read_bytes()).hexdigest() != "e70f5acb381cc96c516cfd3a3e7ac31c8f21990e9279f334b6cbdd096d8b7f9a":
+    raise SystemExit("Unexpected seed SHA-256")
+with zipfile.ZipFile(archive) as bundle:
+    bundle.extractall(".data/bundle")
+PY
+seed=$(find "$PWD/.data/bundle" -name reports.jsonl -printf '%h\n' -quit)
+export COMMONDESK_SEED_DIR="${seed:?Could not locate seed}"
+docker compose run --rm --no-deps api python seed.py /seed
+docker compose run --rm --no-deps worker python -m worker.seed /seed

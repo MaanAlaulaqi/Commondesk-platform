@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# The optional verified demonstration bundle travels only in the private service image.
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+cp -R api/. "$scratch/"
+if [[ -n ${1:-} ]]; then
+    cp "$1/reports.jsonl" "$1/manifest.json" "$scratch/"
+    cp -R "$1/media" "$scratch/"
+    cat >> "$scratch/Dockerfile" <<'DOCKER'
+COPY reports.jsonl manifest.json /opt/demo/
+COPY media /opt/demo/media/
+CMD ["sh","-c","python seed.py /opt/demo && exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+DOCKER
+fi
+railway up "$scratch" --path-as-root --service commondesk-api --environment production --detach

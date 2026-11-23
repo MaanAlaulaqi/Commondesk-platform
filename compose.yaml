@@ -1,0 +1,50 @@
+name: commondesk
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: commondesk
+      POSTGRES_USER: commondesk
+      POSTGRES_PASSWORD: local-development
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U commondesk -d commondesk"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  qdrant:
+    image: qdrant/qdrant:v1.16.2
+    volumes: [vectors:/qdrant/storage]
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      PORT: 8001
+      QDRANT_URL: http://qdrant:6333
+      SEED_DIR: /seed
+    depends_on: [qdrant]
+    volumes:
+      - ${COMMONDESK_SEED_DIR:-./.data/empty}:/seed:ro
+  api:
+    build: ./api
+    environment:
+      DATABASE_URL: postgresql://commondesk:local-development@postgres:5432/commondesk
+      WORKER_URL: http://worker:8001
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      PORT: 8000
+    volumes:
+      - ${COMMONDESK_SEED_DIR:-./.data/empty}:/seed:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    ports: ["127.0.0.1:8000:8000"]
+  web:
+    build: ./web
+    ports: ["127.0.0.1:5173:80"]
+    depends_on: [api]
+volumes:
+  database:
+  vectors:

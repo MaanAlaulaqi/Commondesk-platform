@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+mkdir -p .data/empty
+docker compose up --build -d
+echo 'Explore: http://localhost:5173'
