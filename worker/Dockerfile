@@ -5,9 +5,11 @@ WORKDIR /assets
 COPY translator/control.json translator/fetch_control.py ./
 RUN mkdir -p /models/translation && if [ "$MT_BUILD_TRANSLATOR" = 1 ]; then python fetch_control.py; fi
 
-COPY translator/coached-ar-en.json translator/prepare_coached.py ./
-COPY translator/coached-build/ /models/translation-ar-en/
-RUN if [ -f /models/translation-ar-en/model.bin ]; then python prepare_coached.py check /models/translation-ar-en; fi
+# The provider does not support bind or secret mounts in its Dockerfile builder.
+# These expiring single-object grants exist only in an intermediate private build layer.
+COPY translator/coached-ar-en.json translator/fetch_coached.py ./
+COPY translator/coached-build/ /grants/
+RUN mkdir -p /models/translation-ar-en && if [ "$MT_BUILD_TRANSLATOR" = 1 ] && [ -f /grants/downloads.json ]; then python fetch_coached.py; fi
 
 FROM python:3.12-slim
 ARG MT_BUILD_TRANSLATOR
