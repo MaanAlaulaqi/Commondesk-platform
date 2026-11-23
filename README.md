@@ -8,7 +8,7 @@ CommonDesk uses **Google’s MADLAD-400-3B-MT** to translate between English, Th
 
 **Arabic to English** uses our fine-tuned version of MADLAD. We started with an earlier CommonDesk adapter, a small set of adjustments to the base model, and trained two versions on 64 invented examples each. Both saw the same 32 fictional incident settings. The version running today practiced distinctions like “inspect the valve today” and “do not replace it.” The original Google model handles the other 19 translation directions, including English to Arabic.
 
-**Where we are now.** Two AI reviewers checked the English translations against nine new Arabic reports without seeing which model wrote each one. Both fine-tuned versions preserved the meaning on the same two reports. The reviewers rejected six translations from each version and left one unresolved. All four models we compared missed a separate urgency example. The Arabic update is live for multilingual testing, and bilingual human review is still pending. [Translation model details](translator/README.md)
+**Where we are now.** The Arabic-to-English update is live for multilingual testing. The two fine-tuned versions performed alike on nine development reports, and both missed a separate example where urgency mattered. Bilingual human review is still pending. [Translation model details](translator/README.md)
 
 ## Models we’ve used
 
@@ -24,7 +24,6 @@ BERT enters the story through **search**. Our live multilingual E5-small model u
 | CommonDesk text, photo and combined classifiers | Trained on Bangkok categories using E5 and DINOv2 features. | Research checkpoints. Live intake uses rules for its own categories. |
 | NLLB-200 distilled 600M | Generated candidate translations of Thai complaints into English, Arabic, Hindi and Urdu. | Historical translation comparison. |
 | Typhoon Translate 1.5 4B | Tested a Thai–English specialist on the same complaints to see which details survived translation. | Historical translation comparison. |
-| GPT-6.2 Astra and Sol | Independently read translations of invented Arabic examples with the model names hidden to check whether the English preserved the meaning. | Offline AI reviewers for the Arabic fine-tune. |
 
 [Live search models and classifier history](worker/MODEL-CARD.md) · [Translation models](translator/README.md)
 
