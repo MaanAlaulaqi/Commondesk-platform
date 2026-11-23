@@ -10,6 +10,18 @@ CommonDesk uses **Google’s MADLAD-400-3B-MT** to translate between English, Th
 
 **Where we are now.** The Arabic-to-English update is live for multilingual testing. The two fine-tuned versions performed alike on nine development reports, and both missed a separate example where urgency mattered. Bilingual human review is still pending. [Translation model details](translator/README.md)
 
+## Translation models by language
+
+Read the arrows from the original report to the requested translation. **Base MADLAD** means Google’s MADLAD-400-3B-MT with its original weights.
+
+| Language | What serves reports today | Examples from earlier tests |
+|---|---|---|
+| Arabic | Arabic → English uses the CommonDesk fine-tune. The other directions involving Arabic use base MADLAD, including English → Arabic. | We compared Arabic → English adapters on requests, timing and urgency. NLLB-200 also produced Arabic candidates from Thai reports. |
+| Urdu | Base MADLAD in both directions with each of the other four languages. | For Thai → Urdu, we tested NLLB-200 distilled 600M, MADLAD-400-3B-MT and Hy-MT2-7B. Separately, we trained a Hindi/Urdu search adapter to find related reports. It stayed a research model. |
+| Hindi | Base MADLAD in both directions with each of the other four languages. | The Thai → Hindi study compared the same three translators and evaluated Hindi results separately from Urdu. |
+| Thai | Base MADLAD in both directions with each of the other four languages. | We compared Typhoon Translate 1.5 4B, a Thai–English specialist, with MADLAD and NLLB-200 on Thai → English reports. |
+| English | The CommonDesk fine-tune handles incoming Arabic. Base MADLAD handles incoming Hindi, Thai and Urdu, and all four outgoing directions. | English was the target for both the Arabic fine-tune and the Thai translation comparison. |
+
 ## Models we’ve used
 
 BERT enters the story through **search**. Our live multilingual E5-small model uses a BERT encoder to turn a query and a report into numbers we can compare. That helps someone find a related report even when they use different words or a different language. MADLAD handles the separate job of writing a translation. [E5’s pinned model configuration](https://huggingface.co/intfloat/multilingual-e5-small/blob/614241f622f53c4eeff9890bdc4f31cfecc418b3/config.json)
