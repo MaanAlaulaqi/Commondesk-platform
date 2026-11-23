@@ -128,6 +128,49 @@ class TranslationHostTest(unittest.TestCase):
         self.assertEqual((self.root / "launches").read_text().count("launch"), 2)
         self.assertEqual(self.host.translate(self.body)["text"], "synthetic output")
 
+    def test_manual_arabic_route_swaps_the_only_child(self):
+        self.set_policy(["ar:en", "en:hi"])
+        coached = self.root / "coached"
+        coached.mkdir()
+        for name in (
+            "model.bin",
+            "config.json",
+            "spiece.model",
+            "shared_vocabulary.json",
+        ):
+            (coached / name).write_text("coached fixture")
+        files = {p.name: file_digest(p) for p in coached.iterdir()}
+        identity = {
+            "weights": files,
+            "runtime": file_digest(self.root / "runtime.py"),
+            "dependencies": file_digest(self.root / "requirements.txt"),
+        }
+        revision = hashlib.sha256(
+            json.dumps(identity, sort_keys=True).encode()
+        ).hexdigest()
+        (self.root / "coached-ar-en.json").write_text(json.dumps({"sha256": files}))
+        (self.root / "coached-ar-en-policy.json").write_text(
+            json.dumps({"model_revision": revision, "directions": ["ar:en"]})
+        )
+        host = TranslationHost(
+            dict(self.env, MT_AR_EN_COACHED="1", MT_COACHED_MODEL_DIR=str(coached))
+        )
+        self.addCleanup(host.close)
+        ar = dict(self.body, source_language="ar", target_language="en")
+        self.assertEqual(host.manifest("ar", "en")["model_revision"], revision)
+        self.assertEqual(host.manifest()["model_revision"], self.revision)
+        self.assertEqual(
+            self.host.manifest("ar", "en")["model_revision"], self.revision
+        )
+        self.assertEqual(host.translate(ar)["model_revision"], revision)
+        arabic_child = host.child
+        self.assertEqual(host.translate(self.body)["model_revision"], self.revision)
+        self.assertIsNotNone(arabic_child.poll())
+        self.check_status(422, host.manifest, "ar", None)
+        (coached / "model.bin").unlink()
+        self.check_status(503, host.manifest, "ar", "en")
+        self.assertEqual(host.manifest("en", "hi")["model_revision"], self.revision)
+
     def test_invalid_body_and_lifecycle(self):
         self.check_status(422, self.host.translate, dict(self.body, photo="x"))
         self.check_status(422, self.host.translate, dict(self.body, text=" " * 10))

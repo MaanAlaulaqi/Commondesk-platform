@@ -14,3 +14,5 @@ dist/
 *.npz
 *.zip
 .DS_Store
+
+translator/coached-build/downloads.json
