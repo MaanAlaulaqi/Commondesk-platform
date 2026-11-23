@@ -11,6 +11,7 @@ import {
   post,
   url,
 } from "./client";
+import { LanguageSelect, ReportTranslation } from "./ReportTranslation";
 import { Locale, useWords } from "./locale";
 import {
   Busy,
@@ -76,14 +77,14 @@ export default function DetailView({
 }) {
   const locale = useContext(Locale),
     t = useWords(),
-    [view, setView] = useState(locale),
+    [answerLanguage, setAnswerLanguage] = useState(locale),
     details = useLoad<Detail>(
       "/cases/" +
         encodeURIComponent(id) +
         "?source=" +
         encodeURIComponent(query.source || "all") +
         "&locale=" +
-        view,
+        locale,
     );
   const c = details.data;
   const storageKey = "commondesk-review:" + id;
@@ -141,7 +142,7 @@ export default function DetailView({
           source: c?.source,
           kind,
           question,
-          language: view,
+          language: answerLanguage,
         }),
       );
     } catch (e) {
@@ -193,9 +194,12 @@ export default function DetailView({
         <section className="sheet">
           <h2>{t("original")}</h2>
           {originals ? (
-            <blockquote lang={lang} dir="auto">
-              {originals}
-            </blockquote>
+            <>
+              <blockquote lang={lang} dir="auto">{originals}</blockquote>
+              {c.evidence_available && (
+                <ReportTranslation key={JSON.stringify([c.source, c.id, lang, originals])} item={c} originalLanguage={lang} />
+              )}
+            </>
           ) : (
             <p role="status">{t("archiveMissing")}</p>
           )}
@@ -212,9 +216,6 @@ export default function DetailView({
         </section>
       </div>
     );
-  const translations = Array.isArray(c.translations)
-    ? Object.fromEntries(c.translations.map((v) => [v.language, v.text]))
-    : c.translations || {};
   return (
     <>
       <Breadcrumb to={url("explore", { source: c.source })} word="explore" />
@@ -245,26 +246,8 @@ export default function DetailView({
             <blockquote dir="auto" lang={lang}>
               {originals}
             </blockquote>
-            {Object.keys(translations).length > 0 && (
-              <>
-                <Field label={t("languageView")}>
-                  <select
-                    value={view}
-                    onChange={(e) => setView(e.target.value)}
-                  >
-                    {Object.entries(langs).map(([k, label]) => (
-                      <option key={k} value={k}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                {view !== lang && translations[view] && (
-                  <blockquote dir="auto" lang={view}>
-                    {translations[view]}
-                  </blockquote>
-                )}
-              </>
+            {originals && (
+              <ReportTranslation key={JSON.stringify([c.source, c.id, lang, originals])} item={c} originalLanguage={lang} />
             )}
             {photo && (
               <figure>
@@ -372,6 +355,10 @@ export default function DetailView({
                   <option value="report">{t("reportAnswer")}</option>
                 </select>
               </Field>
+              <LanguageSelect label={t("answerLanguage")} value={answerLanguage} onChange={value => {
+                setAnswerLanguage(value);
+                show(null);
+              }} />
               <Field label={t("enterQuestion")}>
                 <textarea
                   rows={2}

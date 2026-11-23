@@ -1,6 +1,11 @@
 import { createContext, useContext } from "react";
 import { phrases } from "./phrases";
 const en = {
+  reportLanguage: "Report language",
+  answerLanguage: "Answer language",
+  machineTranslation: "Machine translation",
+  storedTranslation: "Stored translation",
+  translationUnavailable: "Translation unavailable.",
   archiveReference: "Archive reference",
   archiveMissing:
     "The archive matched this record. Its original complaint text is unavailable on this server.",

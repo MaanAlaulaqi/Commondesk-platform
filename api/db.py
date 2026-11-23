@@ -94,6 +94,20 @@ views = Table(
     Column("text", Text, nullable=False),
     Column("view_id", String, nullable=False, unique=True),
 )
+report_translations = Table(
+    "cd_report_translations",
+    meta,
+    Column("cache_key", String(64), primary_key=True),
+    Column("case_id", String, nullable=False),
+    Column("source", String, nullable=False),
+    Column("source_digest", String(64), nullable=False),
+    Column("source_language", String, nullable=False),
+    Column("target_language", String, nullable=False),
+    Column("model_revision", String, nullable=False),
+    Column("text", Text),
+    Column("lease", String),
+    Column("expires_at", Float),
+)
 events = Table(
     "cd_events",
     meta,

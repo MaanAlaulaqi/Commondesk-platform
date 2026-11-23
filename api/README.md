@@ -11,6 +11,7 @@ For the full stack, start with the repository quickstart. For a standalone API, 
 | Explore and Insights | `GET /api/cases`, `/api/map`, and `/api/insights` share source, district, status, category, confirmed urgency, language and Dubai-local date filters. `language` requires that a wording exists. `locale` selects localized list wording with original fallback. The map omits unknown points. `GET /api/facets` lists filter choices. |
 | Search | `POST /api/search` accepts text, a photo ID, or both, plus scoped filters. Archive lookup is read-only. IDs link to verified historical evidence when the source catalog is configured. |
 | Detail and review | `GET /api/cases/{id}` includes original text, translations, proposals and timestamped events. `POST /api/cases/{id}/review` stores decisions independently of the original proposal. A new review can clear a routing choice with `service: "unassigned"`. |
+| Report language | `POST /api/cases/{id}/translation` accepts only `source` and `target_language`. The API resolves the original from the case. Results are labeled `original`, `stored`, or `machine`. |
 | Grounded answers | `POST /api/answer` supports status, report excerpts and approved service guidance. Each linked status event belongs to one case. A source mismatch returns HTTP 404. Guidance links open the official service page. |
 
 ## Data and recovery
@@ -24,3 +25,12 @@ The indexing outbox is committed with each case mutation. Each case has a monoto
 `python verify.py --api http://localhost:8100/api` uses synthetic live inputs against a local v2 seed, active worker and Qdrant. It checks five languages, coordinate validation, image upload and rejection, cross-language and photo search, concurrent idempotency, review decisions, source-bound citations, abstention and canonical seed totals. Filtered fixture queries provide wiring evidence; standalone retrieval quality is measured separately.
 
 `python verify_recovery.py --worker http://localhost:8001 --qdrant http://localhost:6333` exercises an empty temporary SQLite installation. For PostgreSQL, append `--local-postgres` with a dedicated empty local test database URL. It saves a case through a worker outage, hard-kills the API while a queue lease is active, restarts the API, replays the indexing job, and verifies one persisted case, one event and one exact Qdrant point. These checks create synthetic records and belong in a disposable local stack.
+
+
+## Private report translation
+
+Set `TRANSLATOR_URL` to the private worker origin for a qualified release. Supported hosts are loopback, the Compose service named `translator`, and Railway private-network names ending in `.railway.internal`. The client disables environment proxies and redirects. It sends the report text and language codes. The report dropdown starts at the original language. A stored wording can be shown even while inference is unavailable. The independent Answer language control belongs to the Ask form.
+
+For generation and machine-cache reads, the API checks the worker's current model revision and allowed directions. It keys a database entry by collection, case, SHA-256 of the original, source language, target language and model revision. A bounded database lease coordinates concurrent requests. Case text and translations stay in the workspace and private worker network. A missing original or closed direction returns HTTP 422. A worker outage returns HTTP 503 and the UI continues showing the original.
+
+Use `python api/test_report_translation.py` from the repository root for the synthetic SQLite/cache regression. With a test worker already running on loopback, `python api/bench_report_translation.py PORT` times an invented intake, repeat cache read, and original-only fallback in a disposable database. Run `node web/scripts/check-translation.mjs http://127.0.0.1:5173` against the local UI for the browser paths.
