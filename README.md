@@ -10,6 +10,24 @@ CommonDesk uses **Google’s MADLAD-400-3B-MT** to translate between English, Th
 
 **Where we are now.** Two AI reviewers checked the English translations against nine new Arabic reports without seeing which model wrote each one. Both fine-tuned versions preserved the meaning on the same two reports. The reviewers rejected six translations from each version and left one unresolved. All four models we compared missed a separate urgency example. The Arabic update is live for multilingual testing, and bilingual human review is still pending. [Translation model details](translator/README.md)
 
+## Models we’ve used
+
+BERT enters the story through **search**. Our live multilingual E5-small model uses a BERT encoder to turn a query and a report into numbers we can compare. That helps someone find a related report even when they use different words or a different language. MADLAD handles the separate job of writing a translation. [E5’s pinned model configuration](https://huggingface.co/intfloat/multilingual-e5-small/blob/614241f622f53c4eeff9890bdc4f31cfecc418b3/config.json)
+
+| Model | What we used it for | Where it stands |
+|---|---|---|
+| MADLAD-400-3B-MT | Generates translations between our five languages. | Original model live for 19 directions. |
+| CommonDesk MADLAD adapters | Adapted MADLAD to preserve what a resident wants done, to which object, and when. We compared the original, an earlier adapter and two further fine-tunes. | The coached Arabic-to-English version is live. |
+| Multilingual E5-small | Finds reports with similar meanings. Earlier experiments also used it to predict report categories. | Original encoder live for text search. |
+| DINOv2-small | Finds reports with visually similar photos. | Original encoder live for photo search. |
+| XLM-RoBERTa base and ResNet-18 | In an early Bangkok pilot, XLM-RoBERTa read complaint text and ResNet-18 processed photos. We compared how well text alone, photos alone and both together predicted categories. | Historical classification baselines. |
+| CommonDesk text, photo and combined classifiers | Trained on Bangkok categories using E5 and DINOv2 features. | Research checkpoints. Live intake uses rules for its own categories. |
+| NLLB-200 distilled 600M | Generated candidate translations of Thai complaints into English, Arabic, Hindi and Urdu. | Historical translation comparison. |
+| Typhoon Translate 1.5 4B | Tested a Thai–English specialist on the same complaints to see which details survived translation. | Historical translation comparison. |
+| GPT-6.2 Astra and Sol | Independently read translations of invented Arabic examples with the model names hidden to check whether the English preserved the meaning. | Offline AI reviewers for the Arabic fine-tune. |
+
+[Live search models and classifier history](worker/MODEL-CARD.md) · [Translation models](translator/README.md)
+
 ## Local start
 
 With Docker Compose installed, run `./scripts/start` and open http://localhost:5173. The first build downloads the pinned CPU models. An empty workspace accepts live cases immediately. PostgreSQL stores reports, media, decisions and the indexing queue in a named volume. Qdrant stores rebuildable vectors in its own volume. Stop with `docker compose stop` and resume with `docker compose up -d`.
