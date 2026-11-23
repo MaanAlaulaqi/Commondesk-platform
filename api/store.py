@@ -96,6 +96,8 @@ def summary(row, localized=None):
         urgency=raw["final_urgency"] or "unreviewed",
         photo_url=f"/api/media/{raw['photo']}" if raw["photo"] else None,
     )
+    if raw["service"] and not any(option["id"] == raw["service"] for option in service_options(raw["category"], raw)):
+        result["service"] = None
     if localized:
         result.update(text=localized["text"], language=localized["language"])
     return result

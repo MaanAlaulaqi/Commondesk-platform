@@ -198,6 +198,8 @@ class DirectoryTest(unittest.TestCase):
             self.assertEqual(guidance(question="Madinati")["outcome"], "no_evidence")
             self.path.write_text("[]")
             self.assertIsNone(client.get(path).json()["service"])
+            listed = client.get("/api/cases", params={"ids":case["id"]}).json()["items"]
+            self.assertIsNone(listed[0]["service"])
             self.assertEqual(guidance()["outcome"], "no_evidence")
             self.path.write_text(json.dumps(FIXTURES))
             corrected = review(
