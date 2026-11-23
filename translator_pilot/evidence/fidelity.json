@@ -1,0 +1,871 @@
+{
+  "readers": {
+    "a": "gpt-6.2-astra",
+    "b": "gpt-6.2-sol"
+  },
+  "ballot_sha256": {
+    "a": "3e190c37dc5f32c7e89ab9f6547dff1944e661d607337f9f3c1ea80df5c8cb0a",
+    "b": "1884054f81e82d7663f8fc7c76ee42d118e4d9e6cce9c9ca5ea36fbf61533db7"
+  },
+  "freeze_sha256": "bb8f3d63b7cbc88783bd105443ed3f16cadd3613bf9d3654ce14e6ab78aa5fbd",
+  "adapter_sha256": "92bc8372ccde7a24577c363d22147443e5e837f0a28765b911df631233029350",
+  "data_checks": {
+    "splits": {
+      "train": {
+        "rows": 500,
+        "incidents": 25,
+        "directions": 20,
+        "rows_per_direction": [
+          25
+        ]
+      },
+      "dev": {
+        "rows": 100,
+        "incidents": 5,
+        "directions": 20,
+        "rows_per_direction": [
+          5
+        ]
+      },
+      "test": {
+        "rows": 100,
+        "incidents": 5,
+        "directions": 20,
+        "rows_per_direction": [
+          5
+        ]
+      }
+    },
+    "distinct_views": 175,
+    "min_chars": 32,
+    "max_chars": 112,
+    "normalized_duplicate_groups": 0,
+    "missing_expected_script": 0
+  },
+  "tag_counts_on_negative_votes": {
+    "frozen": {
+      "place": 86,
+      "other": 50,
+      "hazard": 59,
+      "action": 36,
+      "number": 20,
+      "omission": 55,
+      "negation": 2,
+      "addition": 19
+    },
+    "adapter": {
+      "other": 55,
+      "place": 83,
+      "hazard": 50,
+      "omission": 55,
+      "number": 15,
+      "action": 38,
+      "addition": 14,
+      "negation": 4,
+      "unit": 3
+    }
+  },
+  "directions": {
+    "ar-en": {
+      "frozen": {
+        "pass": 5,
+        "fail": 0,
+        "unresolved": 0,
+        "test_chrf_pp": 69.56,
+        "dev_chrf_pp": 64.71
+      },
+      "adapter": {
+        "pass": 5,
+        "fail": 0,
+        "unresolved": 0,
+        "test_chrf_pp": 69.56,
+        "dev_chrf_pp": 64.71
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {},
+        "adapter": {}
+      },
+      "advance_to_review": true,
+      "production_qualified": false
+    },
+    "ar-hi": {
+      "frozen": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 38.03,
+        "dev_chrf_pp": 33.37
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 48.65,
+        "dev_chrf_pp": 34.88
+      },
+      "adapter_paired": {
+        "win": 1,
+        "loss": 0,
+        "tie": 4,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "addition": 1,
+          "hazard": 3,
+          "number": 1,
+          "omission": 6,
+          "other": 4,
+          "place": 8
+        },
+        "adapter": {
+          "omission": 4,
+          "other": 4,
+          "place": 7
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ar-th": {
+      "frozen": {
+        "pass": 1,
+        "fail": 3,
+        "unresolved": 1,
+        "test_chrf_pp": 36.66,
+        "dev_chrf_pp": 46.7
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 4,
+        "unresolved": 1,
+        "test_chrf_pp": 34.7,
+        "dev_chrf_pp": 48.13
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 1,
+        "tie": 3,
+        "unresolved": 1
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "hazard": 3,
+          "omission": 2,
+          "other": 2,
+          "place": 7
+        },
+        "adapter": {
+          "hazard": 3,
+          "omission": 2,
+          "other": 1,
+          "place": 9
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ar-ur": {
+      "frozen": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 31.69,
+        "dev_chrf_pp": 33.59
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 32.19,
+        "dev_chrf_pp": 33.62
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 3,
+          "hazard": 4,
+          "omission": 5,
+          "other": 5,
+          "place": 8
+        },
+        "adapter": {
+          "action": 1,
+          "hazard": 4,
+          "omission": 6,
+          "other": 5,
+          "place": 8
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "en-ar": {
+      "frozen": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 50.68,
+        "dev_chrf_pp": 47.67
+      },
+      "adapter": {
+        "pass": 4,
+        "fail": 1,
+        "unresolved": 0,
+        "test_chrf_pp": 50.37,
+        "dev_chrf_pp": 49.32
+      },
+      "adapter_paired": {
+        "win": 1,
+        "loss": 0,
+        "tie": 4,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "omission": 2
+        },
+        "adapter": {
+          "action": 2
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "en-hi": {
+      "frozen": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 48.76,
+        "dev_chrf_pp": 38.22
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 49.79,
+        "dev_chrf_pp": 39.85
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "addition": 2,
+          "hazard": 4,
+          "omission": 4,
+          "other": 2,
+          "place": 3
+        },
+        "adapter": {
+          "action": 3,
+          "hazard": 3,
+          "omission": 4,
+          "other": 3,
+          "place": 3
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "en-th": {
+      "frozen": {
+        "pass": 2,
+        "fail": 2,
+        "unresolved": 1,
+        "test_chrf_pp": 33.9,
+        "dev_chrf_pp": 57.37
+      },
+      "adapter": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 35.92,
+        "dev_chrf_pp": 50.83
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 4,
+        "unresolved": 1
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "hazard": 3,
+          "omission": 2,
+          "other": 1,
+          "place": 3
+        },
+        "adapter": {
+          "action": 1,
+          "hazard": 2,
+          "omission": 3,
+          "other": 1,
+          "place": 3
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "en-ur": {
+      "frozen": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 34.32,
+        "dev_chrf_pp": 33.45
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 34.74,
+        "dev_chrf_pp": 35.48
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 1,
+        "tie": 4,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "hazard": 2,
+          "omission": 2,
+          "other": 4,
+          "place": 6
+        },
+        "adapter": {
+          "addition": 2,
+          "hazard": 3,
+          "negation": 2,
+          "omission": 3,
+          "other": 3,
+          "place": 6
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "hi-ar": {
+      "frozen": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 38.94,
+        "dev_chrf_pp": 35.26
+      },
+      "adapter": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 38.19,
+        "dev_chrf_pp": 35.51
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "hazard": 2,
+          "number": 2,
+          "omission": 2,
+          "place": 4
+        },
+        "adapter": {
+          "action": 2,
+          "hazard": 2,
+          "omission": 2,
+          "place": 4
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "hi-en": {
+      "frozen": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 72.42,
+        "dev_chrf_pp": 58.5
+      },
+      "adapter": {
+        "pass": 3,
+        "fail": 2,
+        "unresolved": 0,
+        "test_chrf_pp": 72.42,
+        "dev_chrf_pp": 58.5
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "hazard": 2,
+          "omission": 2,
+          "place": 2
+        },
+        "adapter": {
+          "hazard": 2,
+          "omission": 2,
+          "other": 1,
+          "place": 2
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "hi-th": {
+      "frozen": {
+        "pass": 0,
+        "fail": 3,
+        "unresolved": 2,
+        "test_chrf_pp": 35.06,
+        "dev_chrf_pp": 41.65
+      },
+      "adapter": {
+        "pass": 2,
+        "fail": 3,
+        "unresolved": 0,
+        "test_chrf_pp": 34.68,
+        "dev_chrf_pp": 44.64
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 3,
+        "unresolved": 2
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 1,
+          "hazard": 4,
+          "negation": 2,
+          "omission": 2,
+          "other": 1,
+          "place": 5
+        },
+        "adapter": {
+          "action": 2,
+          "hazard": 2,
+          "negation": 2,
+          "omission": 4,
+          "other": 2,
+          "place": 3
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "hi-ur": {
+      "frozen": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 41.32,
+        "dev_chrf_pp": 60.05
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 46.91,
+        "dev_chrf_pp": 60.55
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "addition": 5,
+          "hazard": 4,
+          "omission": 2,
+          "other": 4,
+          "place": 6
+        },
+        "adapter": {
+          "action": 2,
+          "addition": 4,
+          "hazard": 4,
+          "omission": 2,
+          "other": 3,
+          "place": 6,
+          "unit": 1
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "th-ar": {
+      "frozen": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 31.93,
+        "dev_chrf_pp": 47.23
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 28.86,
+        "dev_chrf_pp": 45.47
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "addition": 2,
+          "hazard": 4,
+          "number": 4,
+          "omission": 4,
+          "other": 2,
+          "place": 4
+        },
+        "adapter": {
+          "action": 2,
+          "addition": 3,
+          "hazard": 4,
+          "number": 4,
+          "omission": 4,
+          "other": 2,
+          "place": 6
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "th-en": {
+      "frozen": {
+        "pass": 1,
+        "fail": 3,
+        "unresolved": 1,
+        "test_chrf_pp": 54.37,
+        "dev_chrf_pp": 60.9
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 3,
+        "unresolved": 1,
+        "test_chrf_pp": 55.97,
+        "dev_chrf_pp": 60.94
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 4,
+        "unresolved": 1
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "addition": 1,
+          "hazard": 2,
+          "number": 3,
+          "omission": 4,
+          "other": 3,
+          "place": 3
+        },
+        "adapter": {
+          "action": 2,
+          "hazard": 2,
+          "number": 3,
+          "omission": 2,
+          "other": 4,
+          "place": 3
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "th-hi": {
+      "frozen": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 41.68,
+        "dev_chrf_pp": 49.54
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 45.02,
+        "dev_chrf_pp": 49.24
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 4,
+          "addition": 2,
+          "hazard": 3,
+          "number": 4,
+          "omission": 6,
+          "other": 3,
+          "place": 7
+        },
+        "adapter": {
+          "action": 6,
+          "hazard": 3,
+          "number": 3,
+          "omission": 6,
+          "other": 3,
+          "place": 5
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "th-ur": {
+      "frozen": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 27.01,
+        "dev_chrf_pp": 27.47
+      },
+      "adapter": {
+        "pass": 0,
+        "fail": 5,
+        "unresolved": 0,
+        "test_chrf_pp": 34.25,
+        "dev_chrf_pp": 26.04
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 5,
+          "addition": 2,
+          "hazard": 6,
+          "number": 2,
+          "omission": 5,
+          "other": 3,
+          "place": 5
+        },
+        "adapter": {
+          "action": 4,
+          "addition": 2,
+          "hazard": 4,
+          "number": 2,
+          "omission": 6,
+          "other": 4,
+          "place": 5,
+          "unit": 1
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ur-ar": {
+      "frozen": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 34.02,
+        "dev_chrf_pp": 31.17
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 34.39,
+        "dev_chrf_pp": 35.12
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 4,
+          "addition": 2,
+          "hazard": 4,
+          "number": 2,
+          "omission": 2,
+          "other": 3,
+          "place": 2
+        },
+        "adapter": {
+          "action": 4,
+          "addition": 2,
+          "hazard": 3,
+          "number": 2,
+          "omission": 2,
+          "other": 3,
+          "place": 2
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ur-en": {
+      "frozen": {
+        "pass": 2,
+        "fail": 3,
+        "unresolved": 0,
+        "test_chrf_pp": 63.66,
+        "dev_chrf_pp": 48.17
+      },
+      "adapter": {
+        "pass": 2,
+        "fail": 3,
+        "unresolved": 0,
+        "test_chrf_pp": 65.44,
+        "dev_chrf_pp": 49.2
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "hazard": 2,
+          "omission": 1,
+          "other": 4,
+          "place": 2
+        },
+        "adapter": {
+          "action": 2,
+          "hazard": 2,
+          "other": 5,
+          "place": 2
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ur-hi": {
+      "frozen": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 60.11,
+        "dev_chrf_pp": 66.41
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 60.73,
+        "dev_chrf_pp": 66.41
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 5,
+        "unresolved": 0
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 2,
+          "hazard": 2,
+          "number": 2,
+          "other": 6,
+          "place": 4
+        },
+        "adapter": {
+          "action": 2,
+          "addition": 1,
+          "hazard": 3,
+          "number": 1,
+          "omission": 1,
+          "other": 6,
+          "place": 4
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    },
+    "ur-th": {
+      "frozen": {
+        "pass": 0,
+        "fail": 4,
+        "unresolved": 1,
+        "test_chrf_pp": 29.31,
+        "dev_chrf_pp": 38.44
+      },
+      "adapter": {
+        "pass": 1,
+        "fail": 4,
+        "unresolved": 0,
+        "test_chrf_pp": 29.24,
+        "dev_chrf_pp": 39.37
+      },
+      "adapter_paired": {
+        "win": 0,
+        "loss": 0,
+        "tie": 4,
+        "unresolved": 1
+      },
+      "negative_reader_tag_counts": {
+        "frozen": {
+          "action": 3,
+          "addition": 2,
+          "hazard": 5,
+          "omission": 2,
+          "other": 3,
+          "place": 7
+        },
+        "adapter": {
+          "action": 3,
+          "hazard": 4,
+          "omission": 2,
+          "other": 5,
+          "place": 5,
+          "unit": 1
+        }
+      },
+      "advance_to_review": false,
+      "production_qualified": false
+    }
+  }
+}

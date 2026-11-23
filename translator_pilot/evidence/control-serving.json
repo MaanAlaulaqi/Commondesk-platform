@@ -1,0 +1,43 @@
+{
+  "release": "1e9bd77f519acde8a923db199e1b8ba604e90fd4ec5795b42440c847dc87445d",
+  "cpu_quota": 2,
+  "memory_limit_gib": 8,
+  "launch_to_ready_s": 8.300311933,
+  "first_generation": {
+    "direction": "en:hi",
+    "status": 200,
+    "seconds": 4.661
+  },
+  "successful_warm_directions": 20,
+  "warm_p50_s": 4.2565,
+  "warm_p95_s": 5.113,
+  "longer": {
+    "direction": "en:ar",
+    "status": 200,
+    "seconds": 22.6
+  },
+  "burst_statuses": {
+    "200": 1,
+    "429": 3
+  },
+  "cgroup_peak_bytes": 5393129472,
+  "case_api": {
+    "uncached": {
+      "milliseconds": 4011.68,
+      "status": 200,
+      "model_revision": "1e9bd77f519acde8a923db199e1b8ba604e90fd4ec5795b42440c847dc87445d",
+      "cached": false
+    },
+    "cached": {
+      "milliseconds": 8.9,
+      "status": 200,
+      "model_revision": "1e9bd77f519acde8a923db199e1b8ba604e90fd4ec5795b42440c847dc87445d",
+      "cached": true
+    },
+    "outage": {
+      "milliseconds": 2.13,
+      "status": 503,
+      "original_available": true
+    }
+  }
+}
