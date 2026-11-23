@@ -4,6 +4,7 @@ import { ArrowUpRight, Check } from "lucide-react";
 import {
   type Case,
   type CaseList,
+  type RoutingOption,
   type Filters,
   apiBase,
   langs,
@@ -12,7 +13,7 @@ import {
   post,
   url,
 } from "./client";
-import { ServiceRouting, type RoutingOption, privateCategory } from "./ServiceRouting";
+import { ServiceRouting, RoutingHistory } from "./ServiceRouting";
 import { Locale, useWords } from "./locale";
 import {
   Busy,
@@ -105,12 +106,13 @@ export default function DetailView({
     query.source === "archive" ? null : "/facets?source=" + encodeURIComponent(query.source || "all"),
   );
   useEffect(() => {
-    if (c && query.event) {
-      const el = document.getElementById("event-" + query.event);
+    if (c && (query.event || query.service)) {
+      const target = query.event ? "event-" + query.event : "service-" + query.service;
+      const el = document.getElementById(target);
       el?.scrollIntoView({ block: "center" });
       el?.focus();
     }
-  }, [c, query.event]);
+  }, [c, query.event, query.service]);
   function setReview(fields: typeof emptyReview) {
     const next = { fields, key: crypto.randomUUID() };
     setDraft(next);
@@ -329,6 +331,9 @@ export default function DetailView({
                   key={ev.event_id}
                 >
                   <b>{pretty(ev.status || ev.type)}</b>
+                  {ev.details?.routing?.purpose === "routing_intent_only" && (
+                    <RoutingHistory selected={ev.details.routing.selected} />
+                  )}
                   <time>{ev.at && new Date(ev.at).toLocaleString(locale)}</time>
                   <a
                     className="event-ref"
@@ -467,7 +472,7 @@ export default function DetailView({
                         .filter(Boolean)
                         .map((v) => (
                           <option key={v} value={v}>
-                            {privateCategory(v, locale) || pretty(v)}
+                            {pretty(v)}
                           </option>
                         ))}
                     </select>

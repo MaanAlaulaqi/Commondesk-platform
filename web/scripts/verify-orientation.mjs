@@ -292,6 +292,10 @@ async function run(device) {
             await field.selectOption(restore);
             assert.equal(await service.inputValue(), "");
           }
+          await page.evaluate(() => {
+            location.hash = "#/case/orientation-demo?source=live&service=private_fixture_plumbing";
+          });
+          await page.waitForFunction(() => document.activeElement?.id === "service-private_fixture_plumbing");
         }
         if (lang === "en" && route.includes("synthetic-archive"))
           assert.equal(
