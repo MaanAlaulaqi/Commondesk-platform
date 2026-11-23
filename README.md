@@ -2,6 +2,14 @@
 
 A shared civic reporting workspace in English, Thai, Arabic, Hindi and Urdu. Start on Explore, open a map pin, or file a new report with an optional incident location and photo. Every new submission receives a durable case number. Status answers cite the case's own events.
 
+## What translates a report?
+
+CommonDesk uses **Google’s MADLAD-400-3B-MT** to translate between English, Thai, Arabic, Hindi and Urdu. When you choose a report language, CommonDesk shows a saved translation if one exists. Otherwise, it translates the report on demand and keeps the original visible alongside it. [Google’s model card](https://huggingface.co/google/madlad400-3b-mt)
+
+**Arabic to English** uses our fine-tuned version of MADLAD. We started with an earlier CommonDesk adapter, a small set of adjustments to the base model, and trained two versions on 64 invented examples each. Both saw the same 32 fictional incident settings. The version running today practiced distinctions like “inspect the valve today” and “do not replace it.” The original Google model handles the other 19 translation directions, including English to Arabic.
+
+**Where we are now.** Two AI reviewers checked the English translations against nine new Arabic reports without seeing which model wrote each one. Both fine-tuned versions preserved the meaning on the same two reports. The reviewers rejected six translations from each version and left one unresolved. All four models we compared missed a separate urgency example. The Arabic update is live for multilingual testing, and bilingual human review is still pending. [Translation model details](translator/README.md)
+
 ## Local start
 
 With Docker Compose installed, run `./scripts/start` and open http://localhost:5173. The first build downloads the pinned CPU models. An empty workspace accepts live cases immediately. PostgreSQL stores reports, media, decisions and the indexing queue in a named volume. Qdrant stores rebuildable vectors in its own volume. Stop with `docker compose stop` and resume with `docker compose up -d`.
