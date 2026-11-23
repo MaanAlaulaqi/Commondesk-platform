@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 # The optional verified demonstration bundle travels only in the private service image.
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-cp api/Dockerfile api/requirements.txt api/*.py api/templates.json railway.json "$scratch/"
+cp api/Dockerfile api/requirements.txt api/*.py api/templates.json "$scratch/"
 if [[ -n ${1:-} ]]; then
     cp "$1/reports.jsonl" "$1/manifest.json" "$scratch/"
     cp -R "$1/media" "$scratch/"
