@@ -25,6 +25,25 @@ jobs:
       - run: python -m compileall -q api worker
       - run: PYTHONPATH=. python api/test_contracts.py
       - run: PYTHONPATH=api:. python api/test_service_directory.py
+      - run: python api/test_report_translation.py
+      - run: python api/test_report_translation.py
+        env:
+          MT_TEST_POSTGRES_URL: postgresql+psycopg://postgres:ci-local@localhost:5432/commondesk
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - working-directory: web
+        run: |
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          python -m http.server 18194 --bind 127.0.0.1 --directory dist > "$RUNNER_TEMP/translation-ui.log" 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true' EXIT
+          curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:18194/ > /dev/null
+          node scripts/check-translation.mjs
       - run: |
           cd api
           uvicorn main:app --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &

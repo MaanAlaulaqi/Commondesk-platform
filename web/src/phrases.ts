@@ -1,6 +1,12 @@
 // Additional interface copy. Order is English, Arabic, Urdu, Hindi, Thai.
 export const phrases: Record<string, [string, string, string, string, string]> =
   {
+    reportLanguage: ["Report language", "لغة البلاغ", "رپورٹ کی زبان", "रिपोर्ट की भाषा", "ภาษาของรายงาน"],
+    answerLanguage: ["Answer language", "لغة الإجابة", "جواب کی زبان", "उत्तर की भाषा", "ภาษาของคำตอบ"],
+    machineTranslation: ["Machine translation", "ترجمة آلية", "مشینی ترجمہ", "मशीनी अनुवाद", "คำแปลด้วยเครื่อง"],
+    storedTranslation: ["Stored translation", "ترجمة محفوظة", "محفوظ شدہ ترجمہ", "संग्रहीत अनुवाद", "คำแปลที่บันทึกไว้"],
+    reportOriginalOnly: ["No translation is available for this language. The original report is shown above.", "لا تتوفر ترجمة بهذه اللغة. يظهر نص البلاغ الأصلي أعلاه.", "اس زبان میں ترجمہ دستیاب نہیں ہے۔ اصل رپورٹ اوپر دکھائی گئی ہے۔", "इस भाषा में अनुवाद उपलब्ध नहीं है। मूल रिपोर्ट ऊपर दिखाई गई है।", "ไม่มีคำแปลสำหรับภาษานี้ ข้อความรายงานต้นฉบับแสดงอยู่ด้านบน"],
+    translationUnavailable: ["Translation unavailable.", "الترجمة غير متاحة.", "ترجمہ دستیاب نہیں۔", "अनुवाद उपलब्ध नहीं है।", "ไม่มีคำแปลในขณะนี้"],
     archiveReference: [
       "Archive reference",
       "مرجع الأرشيف",

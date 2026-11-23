@@ -1,5 +1,5 @@
 import { PageOrientation } from "./PageOrientation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check } from "lucide-react";
 import {
   type Case,
@@ -15,6 +15,7 @@ import {
   url,
 } from "./client";
 import { ServiceRouting, RoutingHistory } from "./ServiceRouting";
+import { LanguageSelect, ReportTranslation } from "./ReportTranslation";
 import { Locale, useWords } from "./locale";
 import {
   Busy,
@@ -83,14 +84,14 @@ export default function DetailView({
 }) {
   const locale = useContext(Locale),
     t = useWords(),
-    [view, setView] = useState(locale),
+    [answerLanguage, setAnswerLanguage] = useState(locale),
     details = useLoad<Detail>(
       "/cases/" +
         encodeURIComponent(id) +
         "?source=" +
         encodeURIComponent(query.source || "all") +
         "&locale=" +
-        view,
+        locale,
     );
   const c = details.data;
   const storageKey = "commondesk-review:" + id;
@@ -103,6 +104,7 @@ export default function DetailView({
     [kind, setKind] = useState("status"),
     [answer, show] = useState<Answer | null>(null),
     [related, similar] = useState<CaseList | null>(null);
+  const answerVersion = useRef(0);
   const facets = useLoad<Facets>(
     query.source === "archive" ? null : "/facets?source=" + encodeURIComponent(query.source || "all"),
   );
@@ -144,22 +146,26 @@ export default function DetailView({
       setBusy(false);
     }
   }
+  function clearAnswer() {
+    answerVersion.current += 1;
+    show(null);
+  }
   async function ask() {
+    const version = ++answerVersion.current;
     setBusy(true);
     err("");
     show(null);
     try {
-      show(
-        await post<Answer>("/answer", {
-          case_id: id,
-          source: c?.source,
-          kind,
-          question,
-          language: view,
-        }),
-      );
+      const reply = await post<Answer>("/answer", {
+        case_id: id,
+        source: c?.source,
+        kind,
+        question,
+        language: answerLanguage,
+      });
+      if (version === answerVersion.current) show(reply);
     } catch (e) {
-      err((e as Error).message);
+      if (version === answerVersion.current) err((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -210,9 +216,12 @@ export default function DetailView({
         <section className="sheet">
           <h2>{t("original")}</h2>
           {originals ? (
-            <blockquote lang={lang} dir="auto">
-              {originals}
-            </blockquote>
+            <>
+              <blockquote lang={lang} dir="auto">{originals}</blockquote>
+              {c.evidence_available && (
+                <ReportTranslation key={JSON.stringify([c.source, c.id, lang, originals])} item={c} originalLanguage={lang} />
+              )}
+            </>
           ) : (
             <p role="status">{t("archiveMissing")}</p>
           )}
@@ -229,9 +238,6 @@ export default function DetailView({
         </section>
       </div>
     );
-  const translations = Array.isArray(c.translations)
-    ? Object.fromEntries(c.translations.map((v) => [v.language, v.text]))
-    : c.translations || {};
   return (
     <>
       <Breadcrumb to={url("explore", { source: c.source })} word="explore" />
@@ -263,26 +269,8 @@ export default function DetailView({
             <blockquote dir="auto" lang={lang}>
               {originals}
             </blockquote>
-            {Object.keys(translations).length > 0 && (
-              <>
-                <Field label={t("languageView")}>
-                  <select
-                    value={view}
-                    onChange={(e) => setView(e.target.value)}
-                  >
-                    {Object.entries(langs).map(([k, label]) => (
-                      <option key={k} value={k}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                {view !== lang && translations[view] && (
-                  <blockquote dir="auto" lang={view}>
-                    {translations[view]}
-                  </blockquote>
-                )}
-              </>
+            {originals && (
+              <ReportTranslation key={JSON.stringify([c.source, c.id, lang, originals])} item={c} originalLanguage={lang} />
             )}
             {photo && (
               <figure>
@@ -385,7 +373,7 @@ export default function DetailView({
                   value={kind}
                   onChange={(e) => {
                     setKind(e.target.value);
-                    show(null);
+                    clearAnswer();
                   }}
                 >
                   <option value="status">{t("status")}</option>
@@ -393,12 +381,19 @@ export default function DetailView({
                   <option value="report">{t("reportAnswer")}</option>
                 </select>
               </Field>
+              <LanguageSelect label={t("answerLanguage")} value={answerLanguage} onChange={value => {
+                setAnswerLanguage(value);
+                clearAnswer();
+              }} />
               <Field label={t("enterQuestion")}>
                 <textarea
                   rows={2}
                   value={question}
                   dir="auto"
-                  onChange={(e) => setQuestion(e.target.value)}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    clearAnswer();
+                  }}
                 />
               </Field>
               <button disabled={busy}>
