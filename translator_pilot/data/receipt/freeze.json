@@ -1,0 +1,16 @@
+{
+  "files": {
+    "dev.jsonl": "7d8565d21b2de8b1d2d0ab1756c92c0acd5fbfc23b51627d565e8ba6150d19c2",
+    "incidents.psv": "a4cefb1b87af59cab3a803da13b2ed1d9944f4662e7ff628aa1d536e976f8939",
+    "test.jsonl": "c562085f21161bff46aac3297ce3e4adf54d2a39df1ac5500a36b983afa76910",
+    "train.jsonl": "4f8789f75d154be382a296060718e20a99a8003746fc3198e3630f947d8eb27c"
+  },
+  "incidents": {
+    "dev": 5,
+    "test": 5,
+    "train": 25
+  },
+  "protocol_sha256": "22f0d417a19049636ecf64c6cd37265f12ac1e82fb51d98d03009d55457149f2",
+  "source": "original_synthetic",
+  "version": 1
+}
