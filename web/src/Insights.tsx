@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { type Filters, pretty, url } from "./client";
 import { useWords } from "./locale";
 import {
@@ -31,7 +32,10 @@ export default function Insights({ query }: { query: Filters }) {
   return (
     <>
       <div className="page-head">
-        <h1>{t("insights")}</h1>
+        <div className="page-intro">
+          <h1>{t("insights")}</h1>
+          <PageOrientation topic="insights" />
+        </div>
         <SourceSelect
           value={f.source}
           onChange={(s) => update({ source: s })}

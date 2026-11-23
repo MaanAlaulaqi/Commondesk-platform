@@ -1,3 +1,4 @@
+import { PageOrientation } from "./PageOrientation";
 import { useContext, useEffect, useState } from "react";
 import { ArrowUpRight, Check } from "lucide-react";
 import {
@@ -188,7 +189,10 @@ export default function DetailView({
       <div className="narrow">
         <Breadcrumb to={url("search", { source: "archive" })} word="search" />
         <div className="page-head">
-          <h1>{t("archiveReference")}</h1>
+          <div className="page-intro">
+            <h1>{t("archiveReference")}</h1>
+            <PageOrientation topic="archive" />
+          </div>
         </div>
         <section className="sheet">
           <h2>{t("original")}</h2>
@@ -231,6 +235,7 @@ export default function DetailView({
         <div>
           <bdi className="identifier">{id}</bdi>
           <h1>{pretty(c.category) || t("case")}</h1>
+          <PageOrientation topic="detail" />
         </div>
         <Urgency level={c.final_urgency || c.urgency} />
       </div>
