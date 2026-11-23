@@ -1,0 +1,10 @@
+{
+  "repo": "Zoowr/madlad400-3b-mt-ct2-int8",
+  "revision": "dc87a252892a42d835675f68543d574709d1d8f1",
+  "sha256": {
+    "shared_vocabulary.json": "96a87e56790161e612568fd3a9917c3eb05100632dbda0eb0f202dfc1890d91d",
+    "spiece.model": "ef11ac9a22c7503492f56d48dce53be20e339b63605983e9f27d2cd0e0f3922c",
+    "config.json": "5b74d87fd940afd7074813842dd5ca399fe288381e5a35d73fdef957cb6083b9",
+    "model.bin": "2725586867e4ed59b2d16ecdfb58ed80086c9d60084572e64afd8765d62cac3f"
+  }
+}
