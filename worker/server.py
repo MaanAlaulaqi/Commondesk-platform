@@ -1,9 +1,9 @@
 """Internal HTTP service. CPU inference is serialized to bound memory and local store access."""
 
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import logging
 import os
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
 
@@ -35,7 +35,13 @@ class Handler(BaseHTTPRequestHandler):
                         raise Unavailable("Missing model artifacts")
                 with self.server.lock:
                     self.server.store.client.get_collections()
-                return self.reply(200, {"ready": True})
+                return self.reply(
+                    200,
+                    {
+                        "ready": True,
+                        "models": {n: p["revision"] for n, p in PINS.items()},
+                    },
+                )
             if self.path.startswith("/archive/"):
                 with self.server.lock:
                     detail = self.server.store.archive_detail(

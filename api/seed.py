@@ -63,6 +63,7 @@ def seed(root: Path):
                 urgency=r["urgency_suggested"],
                 evidence=r["urgency_reason_code"],
                 version="dubai-example-v2",
+                service_options=r["service_options"],
             )
             origin = source_by_id.get(r["media_id"], {})
             # Limit public provenance to exhibit metadata and licensed source coordinates if present.
@@ -121,9 +122,19 @@ def seed(root: Path):
                     )
                 )
         for table, items in ((cases, primaries), (views, wordings), (events, history)):
+            stmt = insert_for(table)
+            if table is cases:
+                # Backfill verified service eligibility while preserving clerk decisions and submitted evidence.
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=[cases.c.id],
+                    set_={"proposal": stmt.excluded.proposal},
+                    where=cases.c.source == "seed",
+                )
+            else:
+                stmt = stmt.on_conflict_do_nothing()
             for start in range(0, len(items), 100):
                 conn.execute(
-                    insert_for(table).on_conflict_do_nothing(),
+                    stmt,
                     items[start : start + 100],
                 )
         total = conn.scalar(

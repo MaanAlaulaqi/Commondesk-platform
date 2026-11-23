@@ -1,15 +1,18 @@
 """Source-isolated Qdrant collections. Only live cases can be written via HTTP."""
 
-from collections import OrderedDict
-from datetime import date, datetime, time, timezone, timedelta
-from functools import cached_property
 import os
+import re
+from collections import OrderedDict
+from datetime import date, datetime, time, timedelta, timezone
+from functools import cached_property
 from urllib.parse import urlsplit
 from uuid import NAMESPACE_URL, uuid5
 
-from qdrant_client import QdrantClient, models as q
-from .encoders import Encoders
+from qdrant_client import QdrantClient
+from qdrant_client import models as q
+
 from .archive import evidence
+from .encoders import Encoders
 
 COLLECTIONS = {
     "seed": "commondesk_seed_v1",
@@ -37,12 +40,16 @@ def connect(url=None, key=None):
     return QdrantClient(path=os.environ.get("QDRANT_PATH", "/data/vectors"))
 
 
+def point_id(source, view_id):
+    return str(uuid5(NAMESPACE_URL, f"commondesk:{source}:{view_id}"))
+
+
 def point(view_id, case, text, image=None):
     vectors = {"text": text}
     if image is not None:
         vectors["photo"] = image
     return q.PointStruct(
-        id=str(uuid5(NAMESPACE_URL, f"commondesk:{case['source']}:{view_id}")),
+        id=point_id(case["source"], view_id),
         payload=case,
         vector=vectors,
     )
@@ -130,6 +137,17 @@ class Store:
             )
         }
         payload["urgency"] = case.get("urgency") or "unreviewed"
+        revision = int(case.get("revision", 0))
+        name = self.ensure("live")
+        previous = self.client.retrieve(
+            name,
+            ids=[point_id("live", case["id"])],
+            with_payload=["revision"],
+            with_vectors=False,
+        )
+        if previous and previous[0].payload.get("revision", -1) >= revision:
+            return {"id": case["id"], "indexed": True, "replayed": True}
+        payload["revision"] = revision
         vector = self.encoders.encode("e5-small", "passage: " + payload["text"])
         image = (
             self.encoders.encode("dinov2-small", body["image_b64"])
@@ -137,37 +155,34 @@ class Store:
             else None
         )
         self.client.upsert(
-            self.ensure("live"),
+            name,
             [point(payload["id"], payload, vector, image)],
             wait=True,
         )
         return {"id": payload["id"], "indexed": True}
 
-    def archive_detail(self, report_id):
-        item = evidence(report_id, self.archive_offsets.get(report_id))
+    def archive_detail(self, identifier):
+        match = re.fullmatch(r"archive-([0-9]{1,9})-([0-9a-f]{24})", identifier)
+        if match:
+            offset, report_id = int(match[1]), match[2]
+            records = self.archive.retrieve(
+                COLLECTIONS["archive"],
+                ids=[offset],
+                with_payload=["source_offset", "report_id"],
+                with_vectors=False,
+            )
+            if not records or records[0].payload != {
+                "source_offset": offset,
+                "report_id": report_id,
+            }:
+                raise KeyError("Unknown archive identifier")
+            return dict(evidence(report_id, offset), id=identifier)
+        item = evidence(identifier, self.archive_offsets.get(identifier))
         if item.get("evidence_available") or "source_offset" in item:
             return item
-        if not any(
-            a.alias_name == COLLECTIONS["archive"]
-            for a in self.archive.get_aliases().aliases
-        ):
-            raise Unavailable("Archive alias has not been published")
-        records, _ = self.archive.scroll(
-            COLLECTIONS["archive"],
-            scroll_filter=q.Filter(
-                must=[
-                    q.FieldCondition(
-                        key="report_id", match=q.MatchValue(value=report_id)
-                    )
-                ]
-            ),
-            limit=1,
-            with_payload=["source_offset"],
-            with_vectors=False,
-        )
-        if not records:
-            raise KeyError("Unknown archive identifier")
-        return dict(item, source_offset=records[0].payload["source_offset"])
+        # There is no remote index on opaque report IDs. A cold, unresolved legacy ID
+        # cannot establish an evidence reference. Search results carry the stable pair.
+        raise KeyError("Unknown archive identifier")
 
     def metadata(self, body):
         source = body.get("source")
@@ -186,12 +201,25 @@ class Store:
             must=[q.FieldCondition(key="id", match=q.MatchValue(value=body["id"]))]
         )
         name = COLLECTIONS[source]
-        if (
-            not self.client.collection_exists(name)
-            or not self.client.count(name, count_filter=selection, exact=True).count
-        ):
+        if not self.client.collection_exists(name):
             raise Unavailable("Case vectors are pending")
-        self.client.set_payload(name, changes, points=selection, wait=True)
+        rows, _ = self.client.scroll(
+            name,
+            scroll_filter=selection,
+            limit=6,
+            with_payload=["revision"],
+            with_vectors=False,
+        )
+        if not rows:
+            raise Unavailable("Case vectors are pending")
+        changes["revision"] = int(body.get("revision", 0))
+        # Seed has one row per language, at most five. Filtering per point also
+        # repairs a partially completed write without rolling a newer view back.
+        ids = [
+            r.id for r in rows if r.payload.get("revision", -1) < changes["revision"]
+        ]
+        if ids:
+            self.client.set_payload(name, changes, points=ids, wait=True)
         return {"id": body["id"], "updated": True}
 
     def combined_search(self, body):

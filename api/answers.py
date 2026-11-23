@@ -5,8 +5,14 @@ from datetime import datetime
 from pathlib import Path
 
 
-TEMPLATES = json.loads(Path(__file__).with_name("templates.json").read_text(encoding="utf-8"))
-STATUS_OUTCOMES = {"reported": "no_update", "assigned": "assigned", "completed": "completed"}
+TEMPLATES = json.loads(
+    Path(__file__).with_name("templates.json").read_text(encoding="utf-8")
+)
+STATUS_OUTCOMES = {
+    "reported": "no_update",
+    "assigned": "assigned",
+    "completed": "completed",
+}
 
 
 def case_status(case_id, events):
@@ -17,7 +23,11 @@ def case_status(case_id, events):
             continue
         event_id = event.get("event_id")
         status = event.get("status")
-        if not isinstance(event_id, str) or not event_id.strip() or not event_id.isprintable():
+        if (
+            not isinstance(event_id, str)
+            or not event_id.strip()
+            or not event_id.isprintable()
+        ):
             return "no_evidence", []
         if "[" in event_id or "]" in event_id:
             return "no_evidence", []
@@ -31,14 +41,21 @@ def case_status(case_id, events):
             return "no_evidence", []
 
         evidence = (timestamp, status)
-        if event_id in timestamps_and_statuses and timestamps_and_statuses[event_id] != evidence:
+        if (
+            event_id in timestamps_and_statuses
+            and timestamps_and_statuses[event_id] != evidence
+        ):
             return "no_evidence", []
         timestamps_and_statuses[event_id] = evidence
 
     if not timestamps_and_statuses:
         return "no_evidence", []
     latest = max(timestamp for timestamp, _ in timestamps_and_statuses.values())
-    citations = sorted(key for key, (timestamp, _) in timestamps_and_statuses.items() if timestamp == latest)
+    citations = sorted(
+        key
+        for key, (timestamp, _) in timestamps_and_statuses.items()
+        if timestamp == latest
+    )
     outcomes = {STATUS_OUTCOMES[timestamps_and_statuses[key][1]] for key in citations}
     outcome = outcomes.pop() if len(outcomes) == 1 else "conflict"
     return outcome, citations

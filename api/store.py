@@ -25,7 +25,13 @@ CATEGORIES = (
 )
 
 
-def service_options(category):
+def service_options(category, row):
+    if row["source"] == "seed" and category == row["proposal"].get("category"):
+        return (
+            [SERVICE]
+            if SERVICE["id"] in row["proposal"].get("service_options", [])
+            else []
+        )
     return [SERVICE] if category in ("footpath", "transit") else []
 
 
@@ -126,7 +132,11 @@ def detail(conn, cid, locale=None):
         for v in conn.execute(select(views).where(views.c.case_id == cid)).mappings()
     }
     data = summary(row, texts.get(locale))
-    data["photo_alt"] = conn.scalar(select(media.c.alt).where(media.c.id == row["photo"])) if row["photo"] else None
+    data["photo_alt"] = (
+        conn.scalar(select(media.c.alt).where(media.c.id == row["photo"]))
+        if row["photo"]
+        else None
+    )
     data["translations"] = {lang: r["text"] for lang, r in texts.items()}
     data["events"] = [
         dict(e)
@@ -136,5 +146,5 @@ def detail(conn, cid, locale=None):
             .order_by(events.c.at, events.c.event_id)
         ).mappings()
     ]
-    data["service_options"] = service_options(data["category"])
+    data["service_options"] = service_options(data["category"], row)
     return data

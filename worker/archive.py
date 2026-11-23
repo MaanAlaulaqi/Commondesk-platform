@@ -1,11 +1,11 @@
 """Read-only historical evidence, optionally mounted in an authorized local environment."""
 
-from contextlib import closing
 import json
 import os
-from pathlib import Path
 import re
 import sqlite3
+from contextlib import closing
+from pathlib import Path
 
 MANIFEST = "58050fd885d51359b1b2e61ac8a83a200f25d812b6aad8b31bac758d5fabbdc3"
 
@@ -15,6 +15,7 @@ def evidence(report_id, offset=None):
         raise ValueError("Invalid archive identifier")
     item = dict(
         id=report_id,
+        report_id=report_id,
         source="archive",
         language="th",
         evidence_available=False,
@@ -23,6 +24,7 @@ def evidence(report_id, offset=None):
     )
     if offset is not None:
         item["source_offset"] = offset
+        item["detail_id"] = f"archive-{offset}-{report_id}"
     path = os.getenv("ARCHIVE_CATALOG")
     if not path:
         return item
@@ -43,6 +45,7 @@ def evidence(report_id, offset=None):
         return dict(
             item,
             source_offset=row[0],
+            detail_id=f"archive-{row[0]}-{report_id}",
             text=row[1],
             original_text=row[1],
             evidence_available=True,

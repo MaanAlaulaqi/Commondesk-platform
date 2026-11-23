@@ -1,6 +1,7 @@
 """Resolve status, report excerpts and one verified service guidance passage."""
 
 from urllib.parse import quote
+
 from .answers import render_answer
 
 RTA = "https://rta.ae/wps/portal/rta/ae/home/promotion/madinati-service"

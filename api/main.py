@@ -349,7 +349,8 @@ def submit(body: Intake, request: Request):
         inserted = conn.scalar(
             insert_for(cases)
             .values(**row)
-            .on_conflict_do_nothing(index_elements=[cases.c.requested_key]).returning(cases.c.id)
+            .on_conflict_do_nothing(index_elements=[cases.c.requested_key])
+            .returning(cases.c.id)
         )
         if inserted is None:
             return replay(conn)
@@ -489,7 +490,7 @@ def insights(request: Request):
 
 @app.get("/api/cases/{cid}")
 def get_case(cid: str, locale: str | None = None, language: str | None = None):
-    if re.fullmatch(r"[0-9a-fA-F]{24}", cid):
+    if re.fullmatch(r"(?:archive-[0-9]{1,15}-)?[0-9a-fA-F]{24}", cid):
         try:
             reply = httpx.get(jobs.WORKER_URL + "/archive/" + cid, timeout=30)
             if reply.status_code == 404:
@@ -498,6 +499,8 @@ def get_case(cid: str, locale: str | None = None, language: str | None = None):
             record = reply.json()
             return {
                 **record,
+                "id": cid,
+                "report_id": record.get("report_id") or record["id"],
                 "original_text": record.get("text"),
                 "original_language": "th",
                 "events": [],
@@ -548,7 +551,7 @@ def review(cid: str, body: Review, request: Request):
                 )
             return detail(conn, cid)
         category = body.category or row["category"]
-        if body.service == SERVICE["id"] and not service_options(category):
+        if body.service == SERVICE["id"] and not service_options(category, row):
             raise HTTPException(
                 422, "Madinati is offered for transit and footpath cases"
             )
@@ -560,7 +563,7 @@ def review(cid: str, body: Review, request: Request):
             updates["status"] = body.status
         if body.category:
             updates["category"] = body.category
-        if body.service or (row["service"] and not service_options(category)):
+        if body.service or (row["service"] and not service_options(category, row)):
             updates["service"] = (
                 None if body.service in (None, "unassigned") else body.service
             )
@@ -643,7 +646,13 @@ def search(body: Search):
         raw = remote("/search", {**payload, "source": source})["items"]
         if source == "archive":
             results.extend(
-                {**r, "source": "archive", "evidence_available": bool(r.get("text"))}
+                {
+                    **r,
+                    "id": r.get("detail_id") or r["id"],
+                    "report_id": r.get("report_id") or r["id"],
+                    "source": "archive",
+                    "evidence_available": bool(r.get("text")),
+                }
                 for r in raw
             )
             continue

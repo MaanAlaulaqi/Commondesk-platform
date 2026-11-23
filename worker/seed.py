@@ -1,12 +1,13 @@
 """Publish the verified Dubai v2 embeddings. Source files remain outside product git."""
 
 import argparse
-from hashlib import sha256
 import json
+from hashlib import sha256
 from pathlib import Path
 
 import numpy as np
 from qdrant_client import models as q
+
 from .encoders import PINS
 from .search import COLLECTIONS, Store, point
 

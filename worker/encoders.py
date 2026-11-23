@@ -1,12 +1,12 @@
 """Pinned, CPU-only passage, query, and photograph encoders."""
 
-from hashlib import sha256
-from io import BytesIO
-from pathlib import Path
 import base64
 import binascii
 import json
 import os
+from hashlib import sha256
+from io import BytesIO
+from pathlib import Path
 
 PINS = json.loads(Path(__file__).with_name("model-pins.json").read_text())
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "/models"))

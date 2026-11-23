@@ -13,6 +13,7 @@ from db import cases, engine, insert_for, media, queue
 from store import summary
 
 log = logging.getLogger("uvicorn.error")
+LEASE_SECONDS = 30
 WORKER_URL = os.environ.get("WORKER_URL", "http://127.0.0.1:8001").rstrip("/")
 
 
@@ -41,6 +42,22 @@ def enqueue(conn, cid, rev):
     )
 
 
+def renew_lease(cid, token, finished):
+    while not finished.wait(LEASE_SECONDS / 3):
+        try:
+            with engine.begin() as conn:
+                owned = conn.scalar(
+                    queue.update()
+                    .where(queue.c.case_id == cid, queue.c.lease == token)
+                    .values(available=time.time() + LEASE_SECONDS)
+                    .returning(queue.c.case_id)
+                )
+                if not owned:
+                    return
+        except Exception as exc:
+            log.warning("Lease renewal failed (%s)", type(exc).__name__)
+
+
 def process_one():
     current = time.time()
     tok = uuid.uuid4().hex
@@ -62,7 +79,8 @@ def process_one():
         updated = conn.scalar(
             queue.update()
             .where(queue.c.case_id == cid, queue.c.available <= current)
-            .values(lease=tok, available=current + 600).returning(queue.c.case_id)
+            .values(lease=tok, available=current + LEASE_SECONDS)
+            .returning(queue.c.case_id)
         )
         if not updated:
             return False
@@ -75,6 +93,11 @@ def process_one():
             )
             payload["image_b64"] = base64.b64encode(data).decode()
     error = None
+    finished = threading.Event()
+    renewal = threading.Thread(
+        target=renew_lease, args=(cid, tok, finished), daemon=True
+    )
+    renewal.start()
     try:
         if item["source"] == "seed":
             worker("/metadata", item, timeout=60)
@@ -82,6 +105,9 @@ def process_one():
             worker("/index", payload, timeout=240)
     except (httpx.HTTPError, ValueError) as exc:
         error = type(exc).__name__
+    finally:
+        finished.set()
+        renewal.join(timeout=2)
     with engine.begin() as conn:
         guard = (queue.c.case_id == cid, queue.c.lease == tok)
         live = (

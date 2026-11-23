@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-
 TEMPLATES = json.loads(
     Path(__file__).with_name("templates.json").read_text(encoding="utf-8")
 )
