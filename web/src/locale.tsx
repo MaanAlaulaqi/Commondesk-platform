@@ -3,7 +3,7 @@ import { phrases } from "./phrases";
 const en = {
   reportLanguage: "Report language",
   answerLanguage: "Answer language",
-  machineTranslation: "Machine translation",
+  machineTranslation: "Experimental machine translation. Check important details against the original.",
   storedTranslation: "Stored translation",
   translationUnavailable: "Translation unavailable.",
   reportOriginalOnly: "No translation is available for this language. The original report is shown above.",

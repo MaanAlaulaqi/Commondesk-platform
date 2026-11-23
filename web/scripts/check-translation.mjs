@@ -79,7 +79,7 @@ try {
   await report.selectOption("ar");
   await page.getByText("ar test output").waitFor();
   resolveSlow();
-  await page.getByText("Machine translation", { exact: true }).waitFor();
+  await page.getByText("Experimental machine translation. Check important details against the original.", { exact: true }).waitFor();
   assert.equal(await answer.inputValue(), "en");
   const askForm = page.locator("form").filter({ has: answer });
   const first = page.waitForRequest(req => new URL(req.url()).pathname.endsWith("/answer"));
@@ -104,7 +104,7 @@ try {
   assert.equal(await page.getByRole("button", { name: "Retry" }).count(), 0);
   await report.selectOption("en");
   assert.equal(
-    await page.getByText("Machine translation", { exact: true }).count(),
+    await page.getByText("Experimental machine translation. Check important details against the original.", { exact: true }).count(),
     0,
   );
   const before = requests.length;

@@ -16,6 +16,14 @@ from sqlalchemy import select
 
 def private_origin():
     origin = os.getenv("TRANSLATOR_URL", "").rstrip("/")
+    expiry = os.getenv("TRANSLATOR_EXPIRES_AT")
+    if expiry is not None:
+        try:
+            expired = time.time() >= int(expiry)
+        except ValueError:
+            expired = True
+        if expired:
+            raise HTTPException(422, "Translation observation window closed")
     if not origin:
         raise HTTPException(422, "Machine translation is disabled")
     parsed = urlsplit(origin)
