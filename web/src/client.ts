@@ -1,8 +1,6 @@
 import { label } from "./labels";
-export const apiBase =
-  (import.meta.env.VITE_API_ORIGIN || "")
-    .replace(/\/$/, "")
-    .replace(/\/api$/, "") + "/api";
+import { apiBase, correlatedRequest } from "./uiEvents";
+export { apiBase };
 export function mediaUrl(id: string) {
   return apiBase + "/media/" + encodeURIComponent(id);
 }
@@ -15,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(apiBase + path, init);
+  const res = await correlatedRequest(path, init);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const message =

@@ -10,6 +10,7 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   const requests = [];
+  const uiLanguages = [];
   const original = "Synthetic case original.";
   const item = {
     id: "alpha",
@@ -33,6 +34,7 @@ try {
   await page.route("**/api/**", async (route) => {
     const req = route.request();
     const path = new URL(req.url()).pathname;
+    uiLanguages.push(req.headers()["x-ui-language"]);
     let json = {};
     let status = 200;
     if (path === "/api/cases/arabic/translation") {
@@ -127,6 +129,7 @@ try {
   await page.getByText(/original complaint text is unavailable/).waitFor();
   assert.equal(await report.count(), 0);
   assert.deepEqual(errors, []);
+  assert.deepEqual([...new Set(uiLanguages)], ["en"], "Report and answer choices must not change UI language headers");
   console.log(
     "Original visibility; independent Ask; race, outage and stored paths; archive omission passed.",
   );

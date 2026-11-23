@@ -54,7 +54,7 @@ export function Notice({
     <div className="notice error" role="alert">
       <AlertTriangle size={17} />
       <span>{error}</span>
-      {retry && <button onClick={retry}>{t("retry")}</button>}
+      {retry && <button data-ui-action="control_retry" onClick={retry}>{t("retry")}</button>}
     </div>
   ) : null;
 }
@@ -110,6 +110,7 @@ export function SourceSelect({
     <label className="source-choice">
       <span>{t("source")}</span>
       <select
+        data-ui-action="source_select"
         aria-label={t("source")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -156,6 +157,7 @@ export function FilterBar({
     <div className="filterbar">
       <div className="filterrow">
         <button
+          data-ui-action="filter_apply"
           className={"filterbtn " + (advanced ? "on" : "")}
           aria-expanded={advanced}
           onClick={() => show(!advanced)}
@@ -169,7 +171,7 @@ export function FilterBar({
             <span className="sr-only">{t(k)}</span>
             <select
               aria-label={t(k)}
-              value={f[k] || ""}
+              data-ui-action="filter_apply" value={f[k] || ""}
               onChange={(e) => set({ ...f, [k]: e.target.value })}
             >
               <option value="">{t(k)}</option>
@@ -185,7 +187,7 @@ export function FilterBar({
         {active.length > 0 && (
           <button
             className="text-btn"
-            onClick={() => set({ source: f.source })}
+            data-ui-action="filter_apply" onClick={() => set({ source: f.source })}
           >
             {t("clear")}
           </button>
@@ -196,7 +198,7 @@ export function FilterBar({
           {(["status", "language"] as const).map((k) => (
             <Field key={k} label={t(k)}>
               <select
-                value={f[k] || ""}
+                data-ui-action="filter_apply" value={f[k] || ""}
                 onChange={(e) => set({ ...f, [k]: e.target.value })}
               >
                 <option value="">{t("all")}</option>
@@ -215,7 +217,7 @@ export function FilterBar({
             <Field label={t(k)} key={k}>
               <input
                 type="date"
-                value={f[k] || ""}
+                data-ui-action="filter_apply" value={f[k] || ""}
                 onChange={(e) => set({ ...f, [k]: e.target.value })}
               />
             </Field>
@@ -258,7 +260,7 @@ export function CaseRow({
       <article className="case-row archive-row">
         <span className="identifier">{t("archive")}</span>
         <h3>
-          <a href={caseUrl(item)}>
+          <a data-ui-action="case_open" href={caseUrl(item)}>
             <bdi>{item.report_id || item.id}</bdi>
           </a>
         </h3>
@@ -267,7 +269,7 @@ export function CaseRow({
           <span>
             {t("offset")} <bdi>{item.source_offset ?? "—"}</bdi>
           </span>
-          <a href={caseUrl(item)} aria-label={t("open") + " " + item.id}>
+          <a data-ui-action="case_open" href={caseUrl(item)} aria-label={t("open") + " " + item.id}>
             <ArrowUpRight size={17} />
           </a>
         </div>
@@ -282,7 +284,7 @@ export function CaseRow({
       <div className="row-body">
         {(item.photo || item.media_id) && (
           <a
-            href={caseUrl(item)}
+            data-ui-action="case_open" href={caseUrl(item)}
             className="case-thumb"
             aria-label={"Open photo case " + item.id}
           >
@@ -294,11 +296,11 @@ export function CaseRow({
           </a>
         )}
         {onSelect && item.latitude != null ? (
-          <button className="case-title" onClick={() => onSelect(item.id)}>
+          <button data-ui-action="case_open" className="case-title" onClick={() => onSelect(item.id)}>
             {pretty(item.category) || item.id}
           </button>
         ) : (
-          <a className="case-title" href={caseUrl(item)}>
+          <a className="case-title" data-ui-action="case_open" href={caseUrl(item)}>
             {pretty(item.category) || item.id}
           </a>
         )}
@@ -312,7 +314,7 @@ export function CaseRow({
           {pretty(item.district) || "—"}
         </span>
         {(item.photo || item.media_id) && <Photo size={14} />}
-        <a href={caseUrl(item)} aria-label={"Open case " + item.id}>
+        <a data-ui-action="case_open" href={caseUrl(item)} aria-label={"Open case " + item.id}>
           <ArrowUpRight size={17} />
         </a>
       </div>

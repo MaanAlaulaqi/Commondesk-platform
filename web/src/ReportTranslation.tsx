@@ -9,7 +9,9 @@ export function LanguageSelect({
   label,
   value,
   onChange,
+  action,
 }: {
+  action: "report_language_select" | "answer_language_select";
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -17,6 +19,7 @@ export function LanguageSelect({
   return (
     <Field label={label}>
       <select
+        data-ui-action={action}
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -83,7 +86,7 @@ export function ReportTranslation({
   return (
     <>
       <LanguageSelect
-        label={t("reportLanguage")}
+        action="report_language_select" label={t("reportLanguage")}
         value={target}
         onChange={(value) => {
           setReply(null);
@@ -112,7 +115,7 @@ export function ReportTranslation({
           ) : reply?.key === key ? (
             <p>
               {t("translationUnavailable")}{" "}
-              <button type="button" onClick={() => retry(attempt + 1)}>
+              <button data-ui-action="translation_retry" type="button" onClick={() => retry(attempt + 1)}>
                 {t("retry")}
               </button>
             </p>

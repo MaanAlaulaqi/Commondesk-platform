@@ -45,7 +45,7 @@ export function PageOrientation({ topic }: { topic: Topic }) {
           }
         }}
       >
-        <button
+        <button data-ui-action="help_open"
           type="button"
           className="help-trigger"
           aria-expanded={open}

@@ -47,13 +47,13 @@ export function ServiceRouting({ context, options, selection, current, pending, 
     || (!o.kind && o.id === "dubai_rta_madinati"));
   return <>
     <Field label={words[0]}>
-      <select value={context} disabled={busy} onChange={e => onContext(e.target.value)}>
+      <select data-ui-action="service_select" value={context} disabled={busy} onChange={e => onContext(e.target.value)}>
         {contexts.map((v, i) => <option key={v} value={v}>{words[i+1]}</option>)}
       </select>
     </Field>
     {pending ? <p role="status">{words[10]}</p> : (eligible.length > 0 || current) && <>
       <Field label={t("service")}>
-        <select value={selection} disabled={busy} onChange={e => onSelect(e.target.value)}>
+        <select data-ui-action="service_select" value={selection} disabled={busy} onChange={e => onSelect(e.target.value)}>
           <option value="">{eligible.find(o => o.id === current)?.name || t("choose")}</option>
           {current && <option value="unassigned">{t("unassigned")}</option>}
           {eligible.map(o => <option key={o.id} value={o.id}>{label(o)}</option>)}

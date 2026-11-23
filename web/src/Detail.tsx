@@ -344,7 +344,7 @@ export default function DetailView({
           </section>
           <section className="sheet">
             <h2>{t("similar")}</h2>
-            <button onClick={relatedCases} disabled={busy}>
+            <button data-ui-action="related_search" onClick={relatedCases} disabled={busy}>
               {t("searchCases")}
             </button>
             {related && (
@@ -381,7 +381,7 @@ export default function DetailView({
                   <option value="report">{t("reportAnswer")}</option>
                 </select>
               </Field>
-              <LanguageSelect label={t("answerLanguage")} value={answerLanguage} onChange={value => {
+              <LanguageSelect action="answer_language_select" label={t("answerLanguage")} value={answerLanguage} onChange={value => {
                 setAnswerLanguage(value);
                 clearAnswer();
               }} />
@@ -396,7 +396,7 @@ export default function DetailView({
                   }}
                 />
               </Field>
-              <button disabled={busy}>
+              <button data-ui-action="answer_submit" disabled={busy}>
                 {t("ask")}
                 <ArrowUpRight size={15} />
               </button>
@@ -502,7 +502,7 @@ export default function DetailView({
                     <option value="down">👎</option>
                   </select>
                 </Field>
-                <button
+                <button data-ui-action="status_update"
                   className="primary"
                   disabled={busy || !Object.values(review).some(Boolean)}
                 >

@@ -45,6 +45,7 @@ jobs:
           trap 'kill "$pid" || true' EXIT
           curl --fail --silent --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:18194/ > /dev/null
           node scripts/check-translation.mjs
+          node scripts/check-ui-events.mjs
       - run: |
           cd api
           uvicorn main:app --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &
