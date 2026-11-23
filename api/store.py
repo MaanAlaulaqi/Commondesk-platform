@@ -4,6 +4,7 @@ from datetime import date
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 from db import cases, events, media, views
+from console_events import operation
 from service_directory import PRIVATE_CATEGORIES, service_options
 
 LANGS = ("en", "ar", "hi", "th", "ur")
@@ -119,6 +120,7 @@ def summaries(conn, rows, locale):
     return [summary(r, wordings.get(r["id"])) for r in rows]
 
 
+@operation
 def detail(conn, cid, locale=None):
     row = conn.execute(select(cases).where(cases.c.id == cid)).mappings().first()
     if row is None:

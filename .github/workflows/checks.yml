@@ -25,6 +25,7 @@ jobs:
       - run: python -m compileall -q api worker
       - run: python -m unittest worker.test_translation_host
       - run: PYTHONPATH=. python api/test_contracts.py
+      - run: PYTHONPATH=. python api/test_console_events.py
       - run: PYTHONPATH=api:. python api/test_service_directory.py
       - run: python api/test_report_translation.py
       - run: python api/test_report_translation.py
