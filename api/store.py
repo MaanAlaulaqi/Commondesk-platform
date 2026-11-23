@@ -89,6 +89,12 @@ def scope(params):
     return checks
 
 
+def geometry(row):
+    if row["latitude"] is None or row["longitude"] is None:
+        return None
+    return {"type": "Point", "coordinates": [row["longitude"], row["latitude"]]}
+
+
 def summary(row, localized=None):
     raw = dict(row)
     result = {
@@ -97,6 +103,7 @@ def summary(row, localized=None):
         if k not in ("requested_key", "request_hash", "day", "week_start")
     }
     result.update(
+        geometry=geometry(raw),
         original_text=raw["text"],
         original_language=raw["language"],
         urgency=raw["final_urgency"] or "unreviewed",

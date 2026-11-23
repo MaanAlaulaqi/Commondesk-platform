@@ -176,6 +176,9 @@ def verify(base):
         "answer",
         dict(case_id=cases["ur"], kind="guidance", language="en", source="live"),
     )
+    named = post("answer", dict(case_id=cases["ur"], kind="guidance", language="en",
+                                source="live", question="Is Madinati offered for this case?"))
+    assert named["outcome"] == "no_evidence" and not named["links"]
     assert abstain["outcome"] == "no_evidence" and not abstain["links"]
     quote = post(
         "answer", dict(case_id=cases["ar"], kind="report", language="en", source="live")

@@ -28,6 +28,7 @@ import jobs
 from answers import render_answer
 from db import cases, engine, events, insert_for, media, migrate, now, views
 from store import (
+    geometry,
     CATEGORIES,
     LANGS,
     SERVICE,
@@ -136,6 +137,7 @@ class Intake(BaseModel):
     ) = None
     clarification: str | None = Field(default=None, max_length=2000)
     manual_review: bool = False
+    proposal_digest: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=150)
 
     @model_validator(mode="after")
@@ -177,10 +179,6 @@ class Answer(BaseModel):
     question: str = Field(default="", max_length=4000)
 
 
-def as_dict(row):
-    return dict(row) if row else {}
-
-
 def request_digest(value):
     return hashlib.sha256(
         json.dumps(value, sort_keys=True, ensure_ascii=False).encode()
@@ -200,9 +198,15 @@ def proposed(body):
         return {
             "intent": body.intent or "complaint",
             "category": "other",
-            "urgency": "low",
+            "urgency": "unassessed",
             "interpretation": body.text,
-            "evidence": "No automated assessment available; clerk review required.",
+            "evidence": {
+                "en": "The assessment service is unavailable. A clerk will review this report.",
+                "ar": "خدمة التقييم غير متاحة. سيراجع الموظف هذا البلاغ.",
+                "hi": "आकलन सेवा उपलब्ध नहीं है। एक कर्मचारी इस रिपोर्ट की समीक्षा करेगा।",
+                "ur": "تشخیص کی خدمت دستیاب نہیں ہے۔ ایک اہلکار اس رپورٹ کا جائزہ لے گا۔",
+                "th": "บริการประเมินไม่พร้อมใช้งาน เจ้าหน้าที่จะตรวจสอบรายงานนี้",
+            }[body.language],
             "question": None,
             "version": "manual-intake-v1",
             "requires_review": True,
@@ -225,7 +229,8 @@ def ready():
 
 @app.post("/api/proposal")
 def proposal(body: Intake):
-    return proposed(body)
+    result = proposed(body)
+    return {**result, "proposal_digest": request_digest(result)}
 
 
 @app.post("/api/media", status_code=201)
@@ -293,7 +298,7 @@ def submit(body: Intake, request: Request):
     )
     if len(key) > 150:
         raise HTTPException(422, "Invalid replay key")
-    digest = request_digest(body.model_dump(exclude={"idempotency_key"}))
+    digest = request_digest(body.model_dump(exclude={"idempotency_key", "proposal_digest"}))
 
     def replay(conn):
         found = conn.execute(
@@ -309,6 +314,8 @@ def submit(body: Intake, request: Request):
         if previous:
             return previous
     prop = proposed(body)
+    if body.proposal_digest and request_digest(prop) != body.proposal_digest:
+        raise HTTPException(409, "Assessment changed. Review the updated proposal before submitting.")
     cid = "CD-" + uuid.uuid4().hex[:20].upper()
     at = now()
     day = datetime.fromisoformat(at).astimezone(ZoneInfo("Asia/Dubai")).date()
@@ -421,7 +428,12 @@ def map_items(request: Request):
             .order_by(cases.c.id)
         ).mappings()
         items = [
-            {**row, "urgency": row["final_urgency"] or "unreviewed"} for row in rows
+            {
+                **row,
+                "urgency": row["final_urgency"] or "unreviewed",
+                "geometry": geometry(row),
+            }
+            for row in rows
         ]
     return {"total": len(items), "items": items}
 
@@ -489,8 +501,16 @@ def insights(request: Request):
 
 
 @app.get("/api/cases/{cid}")
-def get_case(cid: str, locale: str | None = None, language: str | None = None):
-    if re.fullmatch(r"(?:archive-[0-9]{1,15}-)?[0-9a-fA-F]{24}", cid):
+def get_case(
+    cid: str,
+    locale: str | None = None,
+    language: str | None = None,
+    source: Literal["all", "seed", "archive", "live"] = "all",
+):
+
+    if re.fullmatch(r"(?:archive-[0-9]{1,9}-)?[0-9a-f]{24}", cid):
+        if source not in ("all", "archive"):
+            raise HTTPException(404, "Case not found in this collection")
         try:
             reply = httpx.get(jobs.WORKER_URL + "/archive/" + cid, timeout=30)
             if reply.status_code == 404:
@@ -511,7 +531,10 @@ def get_case(cid: str, locale: str | None = None, language: str | None = None):
         except (httpx.HTTPError, ValueError):
             raise HTTPException(503, "Historical archive is unavailable")
     with engine.connect() as conn:
-        return detail(conn, cid, locale or language)
+        record = detail(conn, cid, locale or language)
+        if source not in ("all", record["source"]):
+            raise HTTPException(404, "Case not found in this collection")
+        return record
 
 
 @app.post("/api/cases/{cid}/review")
@@ -636,41 +659,32 @@ def search(body: Search):
         if data is None:
             raise HTTPException(404, "Photo unavailable")
         payload["image_b64"] = base64.b64encode(data).decode()
-    results = []
-    for source in ("live", "seed") if body.source == "all" else (body.source,):
-        if source != "archive":
-            checks = scope({**filters, "source": source})
-            with engine.connect() as conn:
-                if not conn.scalar(select(cases.c.id).where(*checks).limit(1)):
-                    continue
-        raw = remote("/search", {**payload, "source": source})["items"]
-        if source == "archive":
-            results.extend(
-                {
-                    **r,
-                    "id": r.get("detail_id") or r["id"],
-                    "report_id": r.get("report_id") or r["id"],
-                    "source": "archive",
-                    "evidence_available": bool(r.get("text")),
-                }
-                for r in raw
-            )
-            continue
-        ids = [r["id"] for r in raw]
-        with engine.connect() as conn:
-            rows = conn.execute(
-                select(cases).where(cases.c.id.in_(ids), *checks)
-            ).mappings()
-            records = {
-                r["id"]: r for r in summaries(conn, rows, filters.get("language"))
-            }
-        results.extend(
-            {**records[r["id"]], "score": r.get("score", 0)}
-            for r in raw
-            if r["id"] in records
-        )
-    results.sort(key=lambda r: -r.get("score", 0))
-    results = results[: body.limit]
+    if body.source == "archive":
+        hits = remote("/search", payload)["items"]
+        results = [
+            {**hit, "id": hit.get("detail_id") or hit["id"],
+             "report_id": hit.get("report_id") or hit["id"], "source": "archive",
+             "evidence_available": bool(hit.get("text"))}
+            for hit in hits
+        ]
+        return {"items": results, "total": len(results)}
+
+    checks = scope({**filters, "source": body.source})
+    with engine.connect() as conn:
+        if not conn.scalar(select(cases.c.id).where(*checks).limit(1)):
+            return {"items": [], "total": 0}
+
+    # Keep the worker's joint ranking. Relative fusion scores computed independently
+    # in each collection do not have a common candidate denominator.
+    hits = remote("/search", payload)["items"]
+    ids = [hit["id"] for hit in hits]
+    with engine.connect() as conn:
+        rows = conn.execute(select(cases).where(cases.c.id.in_(ids), *checks)).mappings()
+        records = {(r["source"], r["id"]): r for r in summaries(conn, rows, filters.get("language"))}
+    results = [
+        {**records[(hit["source"], hit["id"])], "score": hit["score"]}
+        for hit in hits if (hit["source"], hit["id"]) in records
+    ]
     return {"items": results, "total": len(results)}
 
 
@@ -692,7 +706,7 @@ def public_answer(raw):
 def answer(body: Answer):
     record = None
     if body.case_id:
-        record = get_case(body.case_id)
+        record = get_case(body.case_id, source=body.source)
         if body.source not in ("all", record["source"]):
             raise HTTPException(404, "Case does not belong to selected source")
     if body.kind == "status":

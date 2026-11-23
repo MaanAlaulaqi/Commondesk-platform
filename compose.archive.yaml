@@ -1,0 +1,8 @@
+services:
+  worker:
+    environment:
+      ARCHIVE_QDRANT_URL: ${ARCHIVE_QDRANT_URL:?Set the archive HTTPS URL}
+      ARCHIVE_QDRANT_API_KEY: ${ARCHIVE_QDRANT_API_KEY:?Set a server-side key}
+      ARCHIVE_CATALOG: /opt/archive/catalog.sqlite
+    volumes:
+      - ${COMMONDESK_ARCHIVE_CATALOG:?Set the private catalog path}:/opt/archive/catalog.sqlite:ro

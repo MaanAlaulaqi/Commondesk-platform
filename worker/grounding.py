@@ -35,6 +35,15 @@ TEXT = {
 }
 
 
+SERVICE_DIRECTORY = {
+    "en": "The official RTA Madinati service page is linked below.",
+    "ar": "يرد أدناه رابط الصفحة الرسمية لخدمة «مدينتي» التابعة لهيئة الطرق والمواصلات.",
+    "ur": "آر ٹی اے کی مدینتی سروس کے سرکاری صفحے کا لنک نیچے ہے۔",
+    "hi": "नीचे आरटीए की मदीनती सेवा के आधिकारिक पृष्ठ का लिंक है।",
+    "th": "ลิงก์ด้านล่างเป็นหน้าอย่างเป็นทางการของบริการ RTA Madinati",
+}
+
+
 def answer(body):
     lang = body.get("language", "en")
     if lang not in TEXT:
@@ -76,10 +85,10 @@ def answer(body):
             or r.get("selected_service") == "dubai_rta_madinati"
             for r in reports
         )
-        if not eligible and not any(t in query for t in service_terms):
+        if not eligible and (case_id or not any(t in query for t in service_terms)):
             return abstain
         return {
-            "text": TEXT[lang][1],
+            "text": TEXT[lang][1] if eligible else SERVICE_DIRECTORY[lang],
             "outcome": "guidance",
             "citations": [
                 {
