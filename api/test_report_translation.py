@@ -24,6 +24,9 @@ class FixtureWorker(BaseHTTPRequestHandler):
         if self.headers.get("Authorization") != "Bearer test-only-secret":
             return self.send_error(401)
         params = parse_qs(urlsplit(self.path).query)
+        self.server.manifest_requests.append(self.path)
+        if params and self.server.pair_manifest_status:
+            return self.send_error(self.server.pair_manifest_status)
         pair = (params.get("source_language", [None])[0], params.get("target_language", [None])[0])
         revision = self.server.active_revision if pair == ("ar", "en") else self.server.rev
         self.reply({"model_revision": revision, "directions": self.server.dirs})
@@ -82,6 +85,8 @@ class TranslationTests(unittest.TestCase):
             server.rev, server.response_revision, server.dirs = "r1", None, ["en:th"]
             server.active_revision = AR_EN_COACHED_REVISION
             server.calls = []
+            server.manifest_requests = []
+            server.pair_manifest_status = None
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             self.addCleanup(server.server_close)
@@ -204,6 +209,15 @@ class TranslationTests(unittest.TestCase):
                     )
                 self.assertFalse(translate().json()["cached"])
                 self.assertTrue(translate().json()["cached"])
+                server.pair_manifest_status = 404
+                server.manifest_requests.clear()
+                self.assertEqual(translate().status_code, 200)
+                self.assertEqual(server.manifest_requests, ["/manifest?source_language=en&target_language=th", "/manifest"])
+                server.pair_manifest_status = 503
+                server.manifest_requests.clear()
+                self.assertEqual(translate().status_code, 503)
+                self.assertEqual(server.manifest_requests, ["/manifest?source_language=en&target_language=th"])
+                server.pair_manifest_status = None
                 for deadline in ("1", "invalid"):  # Retired timed observation switch.
                     with patch.dict(os.environ, TRANSLATOR_EXPIRES_AT=deadline):
                         self.assertEqual(translate().status_code, 200)
