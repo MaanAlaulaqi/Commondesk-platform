@@ -24,6 +24,7 @@ jobs:
       - run: python -m pip install -r api/requirements.txt
       - run: python -m compileall -q api worker
       - run: PYTHONPATH=. python api/test_contracts.py
+      - run: PYTHONPATH=api:. python api/test_service_directory.py
       - run: |
           cd api
           uvicorn main:app --port 8000 > "$RUNNER_TEMP/api.log" 2>&1 &

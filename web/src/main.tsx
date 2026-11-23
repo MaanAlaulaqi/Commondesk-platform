@@ -31,7 +31,7 @@ function App() {
   useEffect(() => {
     const sync = () => {
       setRoute(route());
-      if (!route().params.event) window.scrollTo(0, 0);
+      if (!route().params.event && !route().params.service) window.scrollTo(0, 0);
     };
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);

@@ -1,0 +1,4 @@
+[
+  {"id":"private_demo_plumbing","name":"Fictional Plumbing Workshop","category":"private_plumbing","enabled":false,"fictional":true},
+  {"id":"private_demo_electrical","name":"Fictional Electrical Workshop","category":"private_electrical","enabled":false,"fictional":true}
+]

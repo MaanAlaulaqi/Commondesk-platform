@@ -4,15 +4,11 @@ from datetime import date
 from fastapi import HTTPException
 from sqlalchemy import or_, select
 from db import cases, events, media, views
+from service_directory import PRIVATE_CATEGORIES, service_options
 
 LANGS = ("en", "ar", "hi", "th", "ur")
 URGENCY = ("low", "moderate", "high")
 STATUS = ("reported", "assigned", "completed")
-SERVICE = {
-    "id": "dubai_rta_madinati",
-    "name": "RTA Madinati",
-    "url": "https://rta.ae/wps/portal/rta/ae/home/promotion/madinati-service",
-}
 CATEGORIES = (
     "drainage",
     "footpath",
@@ -22,17 +18,8 @@ CATEGORIES = (
     "waste",
     "other",
     "unclassified",
+    *PRIVATE_CATEGORIES,
 )
-
-
-def service_options(category, row):
-    if row["source"] == "seed" and category == row["proposal"].get("category"):
-        return (
-            [SERVICE]
-            if SERVICE["id"] in row["proposal"].get("service_options", [])
-            else []
-        )
-    return [SERVICE] if category in ("footpath", "transit") else []
 
 
 def scope(params):
@@ -109,6 +96,8 @@ def summary(row, localized=None):
         urgency=raw["final_urgency"] or "unreviewed",
         photo_url=f"/api/media/{raw['photo']}" if raw["photo"] else None,
     )
+    if raw["service"] and not any(option["id"] == raw["service"] for option in service_options(raw["category"], raw)):
+        result["service"] = None
     if localized:
         result.update(text=localized["text"], language=localized["language"])
     return result
@@ -153,5 +142,18 @@ def detail(conn, cid, locale=None):
             .order_by(events.c.at, events.c.event_id)
         ).mappings()
     ]
+    data["service_context"] = row["service_context"] or "unknown"
     data["service_options"] = service_options(data["category"], row)
+    eligible = {opt["id"] for opt in data["service_options"]}
+    if data.get("service") not in eligible:
+        data["service"] = None
+    data["service_event_id"] = None
+    if data["service"]:
+        for event in reversed(data["events"]):
+            routing = event["details"].get("routing", {})
+            selected = routing.get("selected") or {}
+            legacy_selection = event["details"].get("changes", {}).get("service")
+            if selected.get("id") == data["service"] or legacy_selection == data["service"]:
+                data["service_event_id"] = event["event_id"]
+                break
     return data

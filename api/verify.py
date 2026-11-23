@@ -12,7 +12,7 @@ import httpx
 from PIL import Image
 
 REPORTS = {
-    "en": "A streetlight beside the demonstration bus shelter has an exposed wire.",
+    "en": "The timetable sign at the demonstration bus shelter is damaged.",
     "ar": "مصباح الإنارة مكسور عند مدخل الحديقة التجريبي.",
     "th": "ท่อระบายน้ำอุดตันที่ทางเข้าเขตทดลอง",
     "hi": "प्रदर्शन क्षेत्र में फुटपाथ टूटा हुआ है।",

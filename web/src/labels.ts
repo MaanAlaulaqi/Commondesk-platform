@@ -1,4 +1,6 @@
 const labels: Record<string, [string, string, string, string]> = {
+  private_plumbing: ["سباكة العقارات الخاصة", "نجی ملکیت کی پلمبنگ", "निजी संपत्ति की प्लंबिंग", "งานประปาในพื้นที่ส่วนบุคคล"],
+  private_electrical: ["صيانة كهرباء العقارات الخاصة", "نجی ملکیت کی برقی مرمت", "निजी संपत्ति का विद्युत रखरखाव", "งานซ่อมบำรุงไฟฟ้าในพื้นที่ส่วนบุคคล"],
   drainage: ["الصرف", "نکاسیِ آب", "जल निकासी", "การระบายน้ำ"],
   footpath: ["الأرصفة", "فٹ پاتھ", "फुटपाथ", "ทางเท้า"],
   lighting: ["الإنارة", "روشنی", "प्रकाश व्यवस्था", "แสงสว่าง"],
@@ -51,6 +53,7 @@ const labels: Record<string, [string, string, string, string]> = {
 export function label(s: string, lang: string) {
   const index = ["ar", "ur", "hi", "th"].indexOf(lang);
   if (index !== -1 && labels[s]) return labels[s][index];
+  if (s === "private_electrical") return "Private electrical maintenance";
   if (/^\d{4}-\d{2}-\d{2}$/.test(s))
     return new Date(s + "T12:00:00Z").toLocaleDateString(lang, {
       month: "short",

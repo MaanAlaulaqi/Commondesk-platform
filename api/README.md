@@ -24,3 +24,21 @@ The indexing outbox is committed with each case mutation. Each case has a monoto
 `python verify.py --api http://localhost:8100/api` uses synthetic live inputs against a local v2 seed, active worker and Qdrant. It checks five languages, coordinate validation, image upload and rejection, cross-language and photo search, concurrent idempotency, review decisions, source-bound citations, abstention and canonical seed totals. Filtered fixture queries provide wiring evidence; standalone retrieval quality is measured separately.
 
 `python verify_recovery.py --worker http://localhost:8001 --qdrant http://localhost:6333` exercises an empty temporary SQLite installation. For PostgreSQL, append `--local-postgres` with a dedicated empty local test database URL. It saves a case through a worker outage, hard-kills the API while a queue lease is active, restarts the API, replays the indexing job, and verifies one persisted case, one event and one exact Qdrant point. These checks create synthetic records and belong in a disposable local stack.
+
+## Reviewed service directory
+
+`GET /api/cases/{id}` returns the effective `service_context`, eligible `service_options`, current `service`, optional `service_event_id` and case revision. Each option has `id`, `name`, `kind`, `fictional` and nullable `url`. Use `POST /api/cases/{id}/review` to save a context or category correction. A subsequent selection can include `expected_revision` to reject a stale screen with HTTP 409. An ineligible option returns HTTP 422. Previously selected options that become ineligible disappear from current guidance, and a review clears the selection while retaining history. Review events retain the routing intent and the option as it appeared when selected. The service directory has no dispatch integration.
+
+Existing public footpath/transit reports may offer RTA Madinati. The seed's original per-case eligibility determines its public option. Historical archive records are read-only. A private directory listing requires a live complaint, a reviewed `private_premises` context, `private_plumbing` or `private_electrical`, and low or moderate assessed urgency. Known public assets, reported hazards and explicit emergencies exclude private listings. Reviewers use context and category to resolve uncertain wording. The input rules cannot recognize every way a resident might describe an emergency. The directory is unsuitable for emergency triage.
+
+Set `SERVICE_CATALOG_PATH` to a read-only local JSON file of reviewed private options. The tracked `service-directory.example.json` contains disabled fictional fixtures. With no file, invalid JSON, duplicate IDs, unsupported fields or invalid entries, the API offers zero private listings. Each entry accepts the following fields.
+
+| Field | Expected value |
+|---|---|
+| id, name | A stable lowercase `private_` identifier and a display name |
+| category | `private_plumbing` or `private_electrical` |
+| enabled, fictional | Boolean values, both default to false |
+| url, approved_source | For an enabled real provider, the identical reviewed HTTPS source URL in both fields. Fictional fixtures have no external link. |
+| allowed_districts | Optional nonempty array of district names. Restricted entries require an exact saved district match after case folding and trimming. Missing or out-of-area districts cannot qualify. Omit only when reviewed coverage has no district restriction. |
+
+A reviewer must verify business identity, offered service, coverage and source before approving a real entry and enabling it in the local configuration. Enabling one registers an informational directory suggestion. A case-specific answer cites the eligible option in that case and any current selection event. A listing implies neither endorsement nor an official referral.

@@ -27,11 +27,12 @@ from sqlalchemy import func, select
 import jobs
 from answers import render_answer
 from db import cases, engine, events, insert_for, media, migrate, now, views
+from service_directory import ServiceContext
 from store import (
     geometry,
     CATEGORIES,
     LANGS,
-    SERVICE,
+
     STATUS,
     URGENCY,
     detail,
@@ -157,7 +158,9 @@ class Review(BaseModel):
     category: str | None = Field(default=None, max_length=60)
     urgency: Literal["high", "moderate", "low"] | None = None
     status: Literal["reported", "assigned", "completed"] | None = None
-    service: Literal["dubai_rta_madinati", "unassigned"] | None = None
+    service: str | None = Field(default=None, pattern=r"^[a-z0-9_]{1,80}$")
+    service_context: ServiceContext | None = None
+    expected_revision: int | None = Field(default=None,ge=1)
     feedback: Literal["up", "down"] | None = None
     idempotency_key: str | None = Field(default=None, min_length=1, max_length=150)
     note: str | None = Field(default=None, max_length=1000)
@@ -539,7 +542,7 @@ def get_case(
 
 @app.post("/api/cases/{cid}/review")
 def review(cid: str, body: Review, request: Request):
-    changes = body.model_dump(exclude_none=True, exclude={"idempotency_key"})
+    changes = body.model_dump(exclude_none=True, exclude={"idempotency_key", "expected_revision"})
     if not changes:
         raise HTTPException(422, "Provide at least one decision")
     if body.category and body.category not in CATEGORIES:
@@ -573,11 +576,17 @@ def review(cid: str, body: Review, request: Request):
                     409, "Replay key already used for a different review"
                 )
             return detail(conn, cid)
+        if body.expected_revision is not None and body.expected_revision != row["revision"]:
+            raise HTTPException(409, "Case changed. Refresh available services.")
         category = body.category or row["category"]
-        if body.service == SERVICE["id"] and not service_options(category, row):
-            raise HTTPException(
-                422, "Madinati is offered for transit and footpath cases"
-            )
+        effective = dict(row)
+        if body.urgency:
+            effective["final_urgency"] = body.urgency
+        if body.service_context:
+            effective["service_context"] = body.service_context
+        options = {opt["id"]: opt for opt in service_options(category, effective)}
+        if body.service and body.service != "unassigned" and body.service not in options:
+            raise HTTPException(422, "Service is outside this case's eligible directory options")
         revision = row["revision"] + 1
         updates = {"revision": revision, "index_status": "pending"}
         if body.urgency:
@@ -586,10 +595,12 @@ def review(cid: str, body: Review, request: Request):
             updates["status"] = body.status
         if body.category:
             updates["category"] = body.category
-        if body.service or (row["service"] and not service_options(category, row)):
-            updates["service"] = (
-                None if body.service in (None, "unassigned") else body.service
-            )
+        if body.service_context:
+            updates["service_context"] = body.service_context
+        choice = body.service if body.service is not None else row["service"]
+        selected = options.get(choice)
+        updates["service"] = selected["id"] if selected else None
+        routing_changed = body.service is not None or updates["service"] != row["service"]
         conn.execute(cases.update().where(cases.c.id == cid).values(**updates))
         conn.execute(
             events.insert().values(
@@ -600,11 +611,16 @@ def review(cid: str, body: Review, request: Request):
                 at=now(),
                 details={
                     "changes": changes,
+                    **({"routing": {"previous": row["service"], "selected": selected,
+                                     "service_context": effective["service_context"] or "unknown",
+                                     "category": category, "purpose": "routing_intent_only"}}
+                       if routing_changed else {}),
                     "previous": {
                         "category": row["category"],
                         "urgency": row["final_urgency"],
                         "status": row["status"],
                         "service": row["service"],
+                        "service_context": row["service_context"] or "unknown",
                     },
                     "proposal": row["proposal"],
                     "external_dispatch": False,
@@ -745,13 +761,15 @@ def answer(body: Answer):
                 "language",
                 "service_options",
                 "service",
+                "service_event_id",
+                "original_text",
                 "category",
             )
         }
         for r in results
     ]
     for r in payload["reports"]:
-        r["service_options"] = [opt["id"] for opt in (r["service_options"] or [])]
+        r["service_options"] = r["service_options"] or []
         r["selected_service"] = r.pop("service")
     if record:
         payload["case"] = payload["reports"][0]
