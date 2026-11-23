@@ -51,6 +51,11 @@ export async function upload(file: File) {
   });
   return result.id;
 }
+export type RoutingOption = {
+  id: string; name: string; kind?: "private_directory" | "public_authority";
+  fictional?: boolean; url?: string | null;
+};
+
 export type Case = {
   id: string;
   report_id?: string;
@@ -81,6 +86,7 @@ export type Case = {
     status: string;
     type?: string;
     detail?: string;
+    details?: { routing?: { purpose: string; selected: RoutingOption | null } };
   }[];
   proposal?: Record<string, unknown>;
 };

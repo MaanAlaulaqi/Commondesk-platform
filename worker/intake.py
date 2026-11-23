@@ -3,6 +3,16 @@
 import re
 
 TERMS = {
+    "private_plumbing": (
+        "leaking tap", "leaky faucet", "leaking kitchen sink", "toilet cistern",
+        "تسرب من الصنبور", "تسريب الصنبور", "نل ٹپک", "نل سے پانی ٹپک", "नल टपक", "नल से पानी टपक",
+        "ก๊อกน้ำรั่ว", "ชักโครกรั่ว",
+    ),
+    "private_electrical": (
+        "wall socket", "power outlet", "light switch", "circuit breaker",
+        "مقبس كهربائي", "مفتاح الإضاءة", "بجلی کا ساکٹ", "بجلی کا سوئچ",
+        "बिजली का सॉकेट", "बिजली का स्विच", "เต้ารับไฟฟ้า", "สวิตช์ไฟ",
+    ),
     "drainage": (
         "drain",
         "flood",
@@ -94,6 +104,9 @@ TERMS = {
 HIGH = (
     "exposed wire",
     "electric shock",
+    "sparking",
+    "on fire",
+    "smoke",
     "open manhole",
     "live wire",
     "مكشوف",
@@ -147,6 +160,9 @@ def match(text, terms):
             if term.isascii()
             else re.escape(term)
         )
+        # The short bus word also occurs inside the Arabic word for an electrical socket.
+        if term == "بس":
+            pattern = r"(?<!\w)بس(?!\w)"
         found = re.search(pattern, text, re.IGNORECASE)
         if found:
             return found.group()
@@ -206,7 +222,7 @@ def proposal(body):
         "intent": intent,
         "category": category,
         "urgency": urgency,
-        "version": "civic-intake-rules-v1",
+        "version": "civic-intake-rules-v2",
         "interpretation": f"{GAP[lang][2]} «{quote}». {GAP[lang][3]}",
         "evidence": hazard or (terms[0][1] if terms else quote),
         "clarification": route,

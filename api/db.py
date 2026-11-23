@@ -19,6 +19,7 @@ from sqlalchemy import (
     Text,
     create_engine,
     event,
+    inspect,
     select,
     text,
 )
@@ -78,6 +79,7 @@ cases = Table(
     Column("evidence_origin", JSON, nullable=False),
     Column("proposal", JSON, nullable=False),
     Column("service", String),
+    Column("service_context", String),
     Column("index_status", String, nullable=False),
     Column("requested_key", String, unique=True),
     Column("request_hash", String),
@@ -135,6 +137,10 @@ def migrate():
         if engine.dialect.name == "postgresql":
             conn.execute(text("SELECT pg_advisory_xact_lock(517491028)"))
         meta.create_all(conn)
+        if not conn.scalar(select(migrations.c.version).where(migrations.c.version == 2)):
+            if "service_context" not in {c["name"] for c in inspect(conn).get_columns("cd_cases")}:
+                conn.exec_driver_sql("ALTER TABLE cd_cases ADD COLUMN service_context VARCHAR")
+            conn.execute(migrations.insert().values(version=2))
         if conn.scalar(select(migrations.c.version).where(migrations.c.version == 1)):
             return
         if engine.dialect.name == "postgresql":

@@ -35,13 +35,21 @@ const server = createServer(async (req, res) => {
 await readFile(join(directory, "index.html"));
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const origin = "http://127.0.0.1:" + server.address().port;
+const fixtureService = {
+  id: "private_fixture_plumbing",
+  name: "Fictional Plumbing Demo",
+  kind: "private_directory",
+  fictional: true,
+  url: null,
+};
 const source = {
   id: "orientation-demo",
   source: "live",
-  text: "A bench in the park needs repair.",
+  text: "A tap in the private courtyard is dripping.",
   language: "en",
-  category: "parks",
+  category: "private_plumbing",
   urgency: "moderate",
+  service_context: "private_premises",
   revision: 1,
   intent: "complaint",
   status: "reported",
@@ -49,7 +57,17 @@ const source = {
   latitude: 25.2,
   longitude: 55.3,
   created_at: "2026-01-02T10:00:00Z",
-  events: [],
+  events: [
+    {
+      event_id: "synthetic-review",
+      at: "2026-01-02T11:00:00Z",
+      status: "reported",
+      details: {
+        routing: { purpose: "routing_intent_only", selected: fixtureService },
+      },
+    },
+  ],
+  service_options: [fixtureService],
 };
 const archive = {
   id: "synthetic-archive",
@@ -236,6 +254,69 @@ async function run(device) {
         assert.ok(text.length > 10);
         assert.equal(await page.locator("main .page-summary").count(), 1);
         strings.add(text);
+        if (lang === "en" && route.includes("orientation-demo")) {
+          assert.match(
+            await page.locator(".timeline").innerText(),
+            /Routing intent recorded · Private directory suggestion · Fictional Plumbing Demo · Fictional example/,
+          );
+          const service = page
+            .locator('select option[value="private_fixture_plumbing"]')
+            .locator("..");
+          const option = page.locator(
+            'select option[value="private_fixture_plumbing"]',
+          );
+          assert.match(
+            await option.innerText(),
+            /Private directory suggestion.*Fictional Plumbing Demo.*Fictional example/,
+          );
+          await page.getByText(/No one is contacted or booked/).waitFor();
+          for (const [name, change, restore] of [
+            ["Urgency", "high", ""],
+            ["Property or asset", "public_asset", "private_premises"],
+            ["Category", "lighting", ""],
+          ]) {
+            await service.selectOption("private_fixture_plumbing");
+            const field = page
+              .locator("form")
+              .filter({
+                has: page.getByRole("button", { name: "Save review" }),
+              })
+              .getByRole("combobox", { name, exact: true });
+            await field.selectOption(change);
+            assert.equal(await option.count(), 0);
+            await page
+              .getByText(
+                "Save the changed case details to see eligible service options.",
+              )
+              .waitFor();
+            await field.selectOption(restore);
+            assert.equal(await service.inputValue(), "");
+          }
+          await service.selectOption("private_fixture_plumbing");
+          await page.route("**/api/cases/orientation-demo/review", request => {
+            assert.equal(request.request().postDataJSON().expected_revision, 1);
+            return request.fulfill({ status: 409, json: {detail: "Case changed. Refresh available services."} });
+          }, {times: 1});
+          const refreshed = page.waitForResponse(response => {
+            const path = new URL(response.url()).pathname;
+            return path === "/api/cases/orientation-demo" && response.request().method() === "GET";
+          });
+          await page.getByRole("button", {name: "Save review"}).click();
+          await refreshed;
+          await page.getByRole("alert").filter({hasText: "Case changed."}).waitFor();
+          assert.equal(await service.inputValue(), "");
+          await page.evaluate(() => {
+            location.hash = "#/case/orientation-demo?source=live&service=private_fixture_plumbing";
+          });
+          await page.waitForFunction(() => document.activeElement?.id === "service-private_fixture_plumbing");
+        }
+        if (lang === "en" && route.includes("synthetic-archive"))
+          assert.equal(
+            await page
+              .locator('select option[value="private_fixture_plumbing"]')
+              .count(),
+            0,
+          );
         const previous = summaryText.get(lang) || new Set();
         previous.add(text);
         summaryText.set(lang, previous);
