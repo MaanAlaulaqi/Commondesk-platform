@@ -1,0 +1,12 @@
+{
+  "base": "google/madlad400-3b-mt",
+  "base_revision": "fa184c675da0b5c9e1c8694fccd4e12e2d422094",
+  "adapter_sha256": "92bc8372ccde7a24577c363d22147443e5e837f0a28765b911df631233029350",
+  "ctranslate2": "4.6.2",
+  "sha256": {
+    "shared_vocabulary.json": "c327551ce3ca6efc7b437e11a267f79979893332dda8a1d146e2c950815193f8",
+    "model.bin": "735c080cdc78ec437a7c671ec95e77698e2f8cb797ad09ed50cb4c64cfdab761",
+    "config.json": "90fb54962455a4e0a0bc7235c0f063d7e46d9c1a1ae003af8059809abd6aeece",
+    "spiece.model": "ef11ac9a22c7503492f56d48dce53be20e339b63605983e9f27d2cd0e0f3922c"
+  }
+}

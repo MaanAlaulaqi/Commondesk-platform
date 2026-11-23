@@ -1,0 +1,33 @@
+{
+  "frozen": {
+    "dev_incident": "D01",
+    "n_directions": 20,
+    "exact_matches": 1,
+    "matched_directions": [
+      "ur:hi"
+    ],
+    "failures": [],
+    "worker_revision": "1e9bd77f519acde8a923db199e1b8ba604e90fd4ec5795b42440c847dc87445d",
+    "gpu_decoding": "BF16 greedy max 160",
+    "cpu_decoding": "int8 beam 4 max 512"
+  },
+  "adapter": {
+    "dev_incident": "D01",
+    "n_directions": 20,
+    "exact_matches": 7,
+    "matched_directions": [
+      "en:th",
+      "en:hi",
+      "th:ar",
+      "th:ur",
+      "hi:en",
+      "hi:ar",
+      "ur:hi"
+    ],
+    "failures": [],
+    "worker_revision": "a650fc65143ccc79a99f0547fad54395788ce7a8f86b34c2436297092c67d93f",
+    "gpu_decoding": "BF16 greedy max 160",
+    "cpu_decoding": "int8 beam 4 max 512"
+  },
+  "scope": "One preselected dev incident, 20 directions per release. Exact string equality under different quantization, decoding and serving pipelines; no semantic judgment. No held-out inputs accessed."
+}
