@@ -49,6 +49,7 @@ export default function CaseMap(props: Props) {
     const m = L.map(host.current, {
       center,
       zoom,
+      maxZoom: 19, // Marker clusters need a finite limit after the raster layer is removed.
       zoomControl: false,
       preferCanvas: true,
       scrollWheelZoom: true,

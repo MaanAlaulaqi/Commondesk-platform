@@ -36,6 +36,15 @@ try {
     assert.equal(await page.locator(".leaflet-control-zoom-in").getAttribute("aria-label"), zoomLabel);
     assert.deepEqual(await position(), originalPin);
   }
+  await page.goto(origin + "/#/explore");
+  await active("en");
+  await page.route("**/api/map?**", (route) => route.fulfill({
+    json: { total: 1, items: [{ id: "fixture-pin", latitude: 25.222, longitude: 55.297 }] },
+  }));
+  await selector.selectOption("ar");
+  await active("ar");
+  await page.locator('.leaflet-marker-icon[title="fixture-pin"]').waitFor();
+
   await page.route(officialStyle, (route) => route.abort());
   const vectorAttempt = page.waitForEvent("requestfailed", { predicate: (req) => req.url() === officialStyle });
   await page.reload();
