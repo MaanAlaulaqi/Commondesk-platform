@@ -487,8 +487,8 @@ main {
   font-family: Barlow, Arial, sans-serif;
   direction: ltr;
 }
-[data-theme="dark"] .case-map.leaflet-container {
-  background-color: var(--surface); /* #282e28 */
+[data-theme="dark"] .case-map.leaflet-container, .leaflet-container {
+  background-color: var(--surface) !important; /* #282e28 */
 }
 .base-tiles {
   filter: grayscale(0.85) sepia(0.26) saturate(0.85) contrast(0.92);
