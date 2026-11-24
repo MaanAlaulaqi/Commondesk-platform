@@ -43,3 +43,7 @@ Noto font files. Keep OpenStreetMap attribution visible and follow the
 Run `node scripts/check-basemap-labels.mjs` to check the five label expressions
 and `WEB_ORIGIN=http://localhost:5173 node scripts/check-basemap-browser.mjs`
 to exercise language switching, retained pins and raster fallback in Chromium.
+
+The frontend serves the [CC0 Colorful style](https://vector.openstreetmap.org/styles/shortbread/colorful.json)
+and its matching basics sprites from `public/map/`. Only the vector tile requests
+go to the upstream tile service. The local style uses browser-rendered glyphs.
