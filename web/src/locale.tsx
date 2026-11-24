@@ -1,6 +1,8 @@
 import { createContext, useContext } from "react";
 import { phrases } from "./phrases";
 const en = {
+  zoomIn: "Zoom in",
+  zoomOut: "Zoom out",
   reportLanguage: "Report language",
   answerLanguage: "Answer language",
   ordinaryMachineTranslation: "Machine translation",
@@ -145,6 +147,8 @@ const en = {
 };
 type Key = keyof typeof en;
 const ar: Partial<Record<Key, string>> = {
+  zoomIn: "تكبير الخريطة",
+  zoomOut: "تصغير الخريطة",
   explore: "استكشف",
   search: "البحث",
   insights: "الإحصاءات",
@@ -256,6 +260,8 @@ const ar: Partial<Record<Key, string>> = {
   timeline: "السجل",
 };
 const ur: Partial<Record<Key, string>> = {
+  zoomIn: "نقشہ بڑا کریں",
+  zoomOut: "نقشہ چھوٹا کریں",
   explore: "دریافت",
   search: "تلاش",
   insights: "اعداد و شمار",
@@ -295,6 +301,8 @@ const ur: Partial<Record<Key, string>> = {
   switchLayout: "ترتیب",
 };
 const hi: Partial<Record<Key, string>> = {
+  zoomIn: "नक्शा बड़ा करें",
+  zoomOut: "नक्शा छोटा करें",
   explore: "देखें",
   search: "खोजें",
   insights: "आँकड़े",
@@ -316,6 +324,8 @@ const hi: Partial<Record<Key, string>> = {
   status: "स्थिति",
 };
 const th: Partial<Record<Key, string>> = {
+  zoomIn: "ขยายแผนที่",
+  zoomOut: "ย่อแผนที่",
   explore: "สำรวจ",
   search: "ค้นหา",
   insights: "ข้อมูลสถิติ",

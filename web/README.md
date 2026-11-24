@@ -29,3 +29,21 @@ WEB_ORIGIN=http://localhost:5173 node scripts/verify-browser.mjs --write
 Use `CHROMIUM_PATH` for an installed Chromium executable. Omit `--write` for the read-only checks. The write check works with a loopback frontend and makes one synthetic report in the local live workspace. Point the frontend at the local API for this check. Use `EVIDENCE_DIR` to select a private output directory, preferably outside the checkout. The runner captures eight desktop/phone layout and theme screenshots alongside a JSON receipt. Browser screenshots can contain demonstration reports; keep them with the private development evidence.
 
 The test checks seed totals, filter state on refresh, map and list selection, original evidence in five language views, optional location, refresh of the receipt, and replay of a review whose first response is lost after commit. It runs axe-core WCAG A/AA checks across six page and language combinations. A passing automated run covers the tested states. Screen-reader usability needs a manual audit.
+
+### Opt-in localized basemap preview
+
+Run `VITE_LOCALIZED_BASEMAP=1 npm run dev` for the preview, or use the same
+build-time variable with `npm run build` to test the bundled preview. The
+existing Leaflet map uses OpenStreetMap Foundation Shortbread vector data
+and the published Colorful style when available. The site locale selects
+the corresponding name field, with the original local name as fallback.
+Missing translations are not generated. Zoom controls and the report pin
+label use the site locale regardless of the basemap. The existing raster
+layer remains the default and is also used if the vector layer cannot load.
+
+Run `node scripts/check-basemap-labels.mjs` on Node 24 to check the five label
+expressions and fallback. Before enabling the preview in production, verify
+the map on mobile and desktop, including Dubai place-label coverage, Arabic
+and Urdu shaping, retained pins and viewport, controls, and vector outage.
+Keep the OpenStreetMap attribution and follow the
+[vector tile usage policy](https://operations.osmfoundation.org/policies/vector/).

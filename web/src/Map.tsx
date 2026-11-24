@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet.markercluster";
 import "leaflet/dist/leaflet.css";
 import { type Case, type Coordinate } from "./client";
+import { Locale, useWords } from "./locale";
 
 type Props = {
   items?: Case[];
@@ -16,6 +17,12 @@ type Props = {
   label: string;
 };
 export default function CaseMap(props: Props) {
+  const language = useContext(Locale), t = useWords();
+  const zoomIn = t("zoomIn"), zoomOut = t("zoomOut"), location = t("location");
+  const activeLanguage = useRef(language);
+  activeLanguage.current = language;
+  const onLanguage = useRef<(() => void) | undefined>(undefined);
+  const zoomControl = useRef<L.Control.Zoom | null>(null);
   const host = useRef<HTMLDivElement>(null),
     map = useRef<L.Map | null>(null),
     current = useRef(props),
@@ -47,14 +54,23 @@ export default function CaseMap(props: Props) {
       scrollWheelZoom: true,
     });
     map.current = m;
-    L.control.zoom({ position: "bottomright" }).addTo(m);
+    zoomControl.current = L.control.zoom({ position: "bottomright" }).addTo(m);
     L.control.scale({ position: "bottomleft", imperial: false }).addTo(m);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    const raster = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution:
         '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       className: "base-tiles",
     }).addTo(m);
+    const controller = new AbortController();
+    if (import.meta.env.VITE_LOCALIZED_BASEMAP === "1") {
+      void import("./localizedBasemap")
+        .then(({ addLocalizedBasemap }) => addLocalizedBasemap(
+          m, raster, () => activeLanguage.current, controller.signal,
+        ))
+        .then((update) => { if (!controller.signal.aborted) onLanguage.current = update; })
+        .catch(() => { /* Keep the raster basemap if the vector style is unavailable. */ });
+    }
     m.attributionControl.setPrefix(false);
     m.on("moveend", () => {
       if (current.current.remember) {
@@ -77,10 +93,25 @@ export default function CaseMap(props: Props) {
     ro.observe(host.current);
     return () => {
       ro.disconnect();
+      controller.abort();
+      onLanguage.current = undefined;
+      zoomControl.current = null;
       m.remove();
       map.current = null;
     };
   }, [props.editable, props.remember]);
+  useEffect(() => {
+    onLanguage.current?.();
+    const container = zoomControl.current?.getContainer();
+    for (const [selector, text] of [
+      [".leaflet-control-zoom-in", zoomIn],
+      [".leaflet-control-zoom-out", zoomOut],
+    ]) {
+      const control = container?.querySelector(selector);
+      control?.setAttribute("title", text);
+      control?.setAttribute("aria-label", text);
+    }
+  }, [language, props.editable, props.remember, zoomIn, zoomOut]);
   useEffect(() => {
     const m = map.current;
     if (!m || props.editable) return;
@@ -143,7 +174,8 @@ export default function CaseMap(props: Props) {
     const marker = L.marker([latitude, longitude], {
       draggable: true,
       icon: makePin(true),
-      title: "Incident location",
+      title: location,
+      alt: location,
     }).addTo(m);
     if (!m.getBounds().contains([latitude, longitude]))
       m.panTo([latitude, longitude]);
@@ -158,7 +190,7 @@ export default function CaseMap(props: Props) {
     return () => {
       m.removeLayer(marker);
     };
-  }, [props.editable, props.point]);
+  }, [props.editable, props.point, location]);
   return (
     <div
       dir="ltr"
