@@ -7,7 +7,7 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
   args: ["--enable-unsafe-swiftshader"],
 });
-const officialStyle = "https://vector.openstreetmap.org/styles/shortbread/colorful.json";
+const officialStyle = new URL("map/colorful.json", origin + "/").href;
 
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });

@@ -14,7 +14,7 @@ import { labelFields, languageName, nameExpression } from "./basemapLabels";
 // Explicit asset URL keeps Vite from rewriting the worker relative to a bundled chunk.
 setWorkerUrl(workerURL);
 
-const styleURL = "https://vector.openstreetmap.org/styles/shortbread/colorful.json";
+const styleURL = new URL(import.meta.env.BASE_URL + "map/colorful.json", document.baseURI).href;
 const attribution =
   '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -27,7 +27,8 @@ export async function addLocalizedBasemap(
   const response = await fetch(styleURL, { signal });
   if (!response.ok) return;
   const style: StyleSpecification = await response.json();
-  // Shortbread supplies Latin glyphs. Font files let the browser shape joined
+  style.sprite = [{ id: "basics", url: new URL("./sprites", response.url).href }];
+  // Font files let the browser shape joined
   // Arabic/Urdu letters, Devanagari clusters and Thai marks as complete labels.
   const scriptFaces = (arabic: string, devanagari: string, thai: string) => [
     { url: arabic, "unicode-range": ["U+0600-06FF", "U+0750-077F", "U+08A0-08FF"] },
