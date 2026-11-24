@@ -2,6 +2,12 @@ import type L from "leaflet";
 import { maplibreGL } from "@maplibre/maplibre-gl-leaflet";
 import { setWorkerUrl, type StyleSpecification } from "maplibre-gl";
 import workerURL from "maplibre-gl/dist/maplibre-gl-worker.mjs?url";
+import ar400 from "@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-400-normal.woff2?url";
+import ar700 from "@fontsource/noto-sans-arabic/files/noto-sans-arabic-arabic-700-normal.woff2?url";
+import hi400 from "@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-400-normal.woff2?url";
+import hi700 from "@fontsource/noto-sans-devanagari/files/noto-sans-devanagari-devanagari-700-normal.woff2?url";
+import th400 from "@fontsource/noto-sans-thai/files/noto-sans-thai-thai-400-normal.woff2?url";
+import th700 from "@fontsource/noto-sans-thai/files/noto-sans-thai-thai-700-normal.woff2?url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { labelFields, languageName, nameExpression } from "./basemapLabels";
 
@@ -21,6 +27,18 @@ export async function addLocalizedBasemap(
   const response = await fetch(styleURL, { signal });
   if (!response.ok) return;
   const style: StyleSpecification = await response.json();
+  // Shortbread supplies Latin glyphs. Font files let the browser shape joined
+  // Arabic/Urdu letters, Devanagari clusters and Thai marks as complete labels.
+  const scriptFaces = (arabic: string, devanagari: string, thai: string) => [
+    { url: arabic, "unicode-range": ["U+0600-06FF", "U+0750-077F", "U+08A0-08FF"] },
+    { url: devanagari, "unicode-range": ["U+0900-097F"] },
+    { url: thai, "unicode-range": ["U+0E00-0E7F"] },
+  ];
+  style["font-faces"] = {
+    ...style["font-faces"],
+    noto_sans_regular: scriptFaces(ar400, hi400, th400),
+    noto_sans_bold: scriptFaces(ar700, hi700, th700),
+  };
   const names = labelFields(style);
   if (!names.length || signal.aborted) return;
   const layer = maplibreGL({
@@ -38,12 +56,10 @@ export async function addLocalizedBasemap(
   };
   let gl: ReturnType<typeof layer.getMaplibreMap> | undefined;
   function cleanup() {
-    clearTimeout(deadline);
     if (map.hasLayer(layer)) map.removeLayer(layer);
     if (shown) map.attributionControl.removeAttribution(attribution);
   }
   let shown = false;
-  const deadline = window.setTimeout(cleanup, 12000);
   signal.addEventListener("abort", cleanup, { once: true });
   try {
     layer.addTo(map);
@@ -61,7 +77,6 @@ export async function addLocalizedBasemap(
     gl.once("style.load", setLanguage);
     gl.once("idle", () => {
       if (signal.aborted || !map.hasLayer(layer) || !gl?.areTilesLoaded()) return;
-      clearTimeout(deadline);
       map.attributionControl.addAttribution(attribution);
       container.style.opacity = "1";
       map.removeLayer(raster);

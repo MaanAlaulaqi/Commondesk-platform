@@ -63,14 +63,12 @@ export default function CaseMap(props: Props) {
       className: "base-tiles",
     }).addTo(m);
     const controller = new AbortController();
-    if (import.meta.env.VITE_LOCALIZED_BASEMAP === "1") {
-      void import("./localizedBasemap")
-        .then(({ addLocalizedBasemap }) => addLocalizedBasemap(
-          m, raster, () => activeLanguage.current, controller.signal,
-        ))
-        .then((update) => { if (!controller.signal.aborted) onLanguage.current = update; })
-        .catch(() => { /* Keep the raster basemap if the vector style is unavailable. */ });
-    }
+    void import("./localizedBasemap")
+      .then(({ addLocalizedBasemap }) => addLocalizedBasemap(
+        m, raster, () => activeLanguage.current, controller.signal,
+      ))
+      .then((update) => { if (!controller.signal.aborted) onLanguage.current = update; })
+      .catch(() => { /* Keep the raster basemap if the vector style is unavailable. */ });
     m.attributionControl.setPrefix(false);
     m.on("moveend", () => {
       if (current.current.remember) {
