@@ -49,10 +49,10 @@ For a fresh organization's shared workspace, start the stack under a separate Co
 
 ## Hosting
 
-GitHub Pages serves the static site under the repository path. Set the repository variable `COMMONDESK_API_ORIGIN` to the API HTTPS origin. The API requires a private PostgreSQL connection and a reachable inference worker. The worker takes a Qdrant URL and server-side API key. The live and seed indexes are separate from the historical archive alias. Source records and model weights stay outside public Git history.
+Railway serves the frontend from the `web/` directory on `main`. Caddy serves the site and forwards same-origin `/api/*` requests to the private API. The web service uses `PORT=8080` and `API_UPSTREAM=http://commondesk-api.railway.internal:8000`. Leave `VITE_API_ORIGIN` unset for this build. GitHub Actions runs the service and frontend checks. The API requires a private PostgreSQL connection and a reachable inference worker. The worker takes a Qdrant URL and server-side API key. The live and seed indexes are separate from the historical archive alias. Source records and model weights stay outside public Git history.
 
 [Implementation agreement](docs/integration.md) · [Release checks](docs/release.md)
 
 An authorized local operator can resolve Bangkok text by mounting a private pinned catalog. Set `COMMONDESK_ARCHIVE_CATALOG` to its absolute path, supply `ARCHIVE_QDRANT_URL` and `ARCHIVE_QDRANT_API_KEY` server-side, and run `docker compose -f compose.yaml -f compose.archive.yaml up -d worker`. The hosted deployment exposes archive reference IDs and scores. The public demo includes the authorized original evidence for the 38 curated Bangkok pairs.
 
-[Open CommonDesk](https://maanalaulaqi.github.io/Commondesk-platform/) · [API readiness](https://commondesk-api-production.up.railway.app/readyz) · [Model versions and limitations](worker/MODEL-CARD.md)
+[Open CommonDesk](https://commondesk.maanalaulaqi.dev/) · [API readiness](https://commondesk-api-production.up.railway.app/readyz) · [Model versions and limitations](worker/MODEL-CARD.md)

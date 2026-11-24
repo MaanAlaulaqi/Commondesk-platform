@@ -1,4 +1,13 @@
 # Release verification
+
+## Production frontend
+
+[Open CommonDesk](https://commondesk.maanalaulaqi.dev/). The Railway service `commondesk-web` builds the Dockerfile in `/web` from GitHub `main`. Its temporary Railway domain also serves the application. Caddy forwards browser requests under `/api/` to the existing private API. At cutover the custom hostname passed TLS verification, showed 2,348 seed submissions, reopened a case on refresh and returned 20 search results. GitHub Actions continues to run the service checks.
+
+If web hosting fails, use the [last published Pages site](https://maanalaulaqi.github.io/Commondesk-platform/) with the existing public API. To resume publishing there, restore `.github/workflows/pages.yml` from commit `fb5e6bc` in a PR and run **Release web** on main. Keep the Pages API origin repository variables available for this fallback. If an issue affects only the custom hostname, use the [Railway service domain](https://commondesk-web-production.up.railway.app/).
+
+## Initial release checks (23 November 2026)
+
 The product repository began empty on 23 November 2026. The release owner verified write access, GitHub admin/workflow permissions, Pages workflow setup, Docker Compose, both pinned model snapshots and the seed ZIP checksum. The production Railway project is satisfied-purpose. Its existing Qdrant service hosts the separate read-only archive; product services use dedicated collection names. A new PostgreSQL service has its own persistent volume. Seed files and private data stay outside Git history.
 
 Integration uses two independent stateful services locally (PostgreSQL 17 and Qdrant 1.16.2). Railway uses private service references. The browser receives only the HTTPS API origin. The original Qdrant archive import is operator-owned.
