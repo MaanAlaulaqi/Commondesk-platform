@@ -1,4 +1,4 @@
-// Run with VITE_LOCALIZED_BASEMAP=1 against the local Vite server.
+// Run against a local or deployed frontend.
 import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
 
