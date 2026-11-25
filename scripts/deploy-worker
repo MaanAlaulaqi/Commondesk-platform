@@ -8,4 +8,13 @@ mkdir -p "$scratch/worker" "$scratch/translator/coached-build"
 cp translator/{runtime.py,requirements.txt,fetch_control.py,fetch_coached.py,control.json,observation-policy.json,coached-ar-en.json,coached-ar-en-policy.json} "$scratch/translator/"
 cp worker/*.py worker/*.json worker/*.txt "$scratch/worker/"
 cp worker/Dockerfile "$scratch/Dockerfile"
+if [[ -n ${1:-} ]]; then
+    mkdir -p "$scratch/seed/search"
+    cp "$1/manifest.json" "$1/reports.jsonl" "$scratch/seed/"
+    cp "$1/search/e5.npz" "$1/search/dino-photos.npz" "$scratch/seed/search/"
+    cat >> "$scratch/Dockerfile" <<'DOCKER'
+COPY seed/ /opt/demo/
+CMD ["sh","-c","python -m worker.seed /opt/demo && exec python -m worker.server"]
+DOCKER
+fi
 railway up "$scratch" --path-as-root --service commondesk-worker --environment production --detach

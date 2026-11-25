@@ -11,6 +11,12 @@ from qdrant_client import models as q
 from .encoders import PINS
 from .search import COLLECTIONS, Store, point
 
+DUBAI_2024_FILES = {
+    "reports.jsonl": "47b29d6118f077ab1c1c09820b3d8ba8673840930596046a7c6e7aa9cfe18eef",
+    "search/e5.npz": "aecbb29363074d05a81a0b737f7be56d2feb670421c8d530b54f2a848145aee0",
+    "search/dino-photos.npz": "713f5debe0fd9bc7749c1cb9cfa15f1b91b044f5a27d34da1c80781aaf8ce5a1",
+}
+
 FILES = {
     "reports.jsonl": "f059056ff764e4f34dbda333fab7ee9cec7b33b1bbfd905328b410c65076ee6a",
     "search/e5.npz": "b19a6361e980bd3d426dd977806768b163620c6f940d20732d445eb9dd800d7c",
@@ -19,7 +25,14 @@ FILES = {
 
 
 def publish(store, root):
-    for filename, digest in FILES.items():
+    collection = json.loads((root / "manifest.json").read_text())["collection"]
+    if collection == "DubaiV2Example":
+        files, source = DUBAI_2024_FILES, "dubai2024"
+    elif collection == "dubai_example_v2":
+        files, source = FILES, "seed"
+    else:
+        raise ValueError("Unknown seed collection")
+    for filename, digest in files.items():
         if sha256((root / filename).read_bytes()).hexdigest() != digest:
             raise ValueError(f"Unrecognized Dubai v2 artifact: {filename}")
     rows = [
@@ -28,6 +41,12 @@ def publish(store, root):
     with np.load(root / "search/e5.npz", allow_pickle=False) as cache:
         if str(cache["revision"]) != PINS["e5-small"]["revision"]:
             raise ValueError("Unexpected E5 revision")
+        if source == "dubai2024" and cache["ids"].tolist() != [
+            row["case_id"] for row in rows
+        ]:
+            raise ValueError(
+                "Text vectors do not align with the published language views"
+            )
         texts = cache["vectors"]
     with np.load(root / "search/dino-photos.npz", allow_pickle=False) as cache:
         if str(cache["revision"]) != PINS["dinov2-small"]["revision"]:
@@ -35,15 +54,17 @@ def publish(store, root):
         photos = dict(
             zip(cache["ids"].tolist(), cache["vectors"].tolist(), strict=True)
         )
-    alias = COLLECTIONS["seed"]
-    target = alias + "_" + FILES["reports.jsonl"][:12]
+    if source == "dubai2024" and set(photos) != {row["media_id"] for row in rows}:
+        raise ValueError("Expected one indexed photo for every 2024 submission")
+    alias = COLLECTIONS[source]
+    target = alias + "_" + files["reports.jsonl"][:12]
     aliases = {
         x.alias_name: x.collection_name for x in store.client.get_aliases().aliases
     }
     if aliases.get(alias) not in (None, target):
         raise ValueError("Existing seed alias targets a different release")
     receipt = {
-        "source": "seed",
+        "source": source,
         "views": len(rows),
         "submissions": len({r["submission_id"] for r in rows}),
         "photos": len(photos),
@@ -54,7 +75,7 @@ def publish(store, root):
             raise ValueError("Published seed collection is incomplete")
         # The API may have applied clerk reviews since publication. Preserve those payloads.
         return receipt
-    store.ensure("seed", target)
+    store.ensure(source, target)
     points = []
     for i, row in enumerate(rows):
         case = {
@@ -70,7 +91,7 @@ def publish(store, root):
         }
         case.update(
             id=row["submission_id"],
-            source="seed",
+            source=source,
             view_id=row["case_id"],
             urgency=row["urgency_confirmed"] or "unreviewed",
         )

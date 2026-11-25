@@ -178,9 +178,11 @@ class Review(BaseModel):
 
 
 class Search(BaseModel):
+    page: int | None = Field(default=None, ge=1, le=2**31 - 1)
+    locale: str | None = None
     text: str = Field(default="", max_length=4000)
     photo: str | None = Field(default=None, max_length=128)
-    source: Literal["seed", "live", "all", "archive"] = "all"
+    source: Literal["seed", "dubai2024", "live", "all", "archive"] = "all"
     filters: dict[str, str | None] = Field(default_factory=dict, max_length=12)
     limit: int = Field(default=20, ge=1, le=100)
 
@@ -189,7 +191,7 @@ class Answer(BaseModel):
     kind: Literal["status", "guidance", "report"] = "status"
     language: Literal["en", "ar", "hi", "th", "ur"] = "en"
     case_id: str | None = Field(default=None, max_length=150)
-    source: Literal["seed", "live", "all", "archive"] = "all"
+    source: Literal["seed", "dubai2024", "live", "all", "archive"] = "all"
     question: str = Field(default="", max_length=4000)
 
 
@@ -520,7 +522,7 @@ def get_case(
     cid: str,
     locale: str | None = None,
     language: str | None = None,
-    source: Literal["all", "seed", "archive", "live"] = "all",
+    source: Literal["all", "seed", "dubai2024", "archive", "live"] = "all",
 ):
 
     if re.fullmatch(r"(?:archive-[0-9]{1,9}-)?[0-9a-f]{24}", cid):
@@ -553,7 +555,7 @@ def get_case(
 
 
 class TranslationRequest(BaseModel, extra="forbid"):
-    source: Literal["seed", "live", "archive", "all"]
+    source: Literal["seed", "dubai2024", "live", "archive", "all"]
     target_language: Literal["en", "ar", "hi", "th", "ur"]
 
 
@@ -677,6 +679,8 @@ def search(body: Search):
     if not body.text.strip() and not body.photo:
         raise HTTPException(422, "Provide text or a reference photo")
     payload = body.model_dump(exclude_none=True)
+    if body.page is not None:
+        payload["limit"] = 50
     filters = {
         k: v
         for k, v in body.filters.items()
@@ -700,14 +704,15 @@ def search(body: Search):
             raise HTTPException(404, "Photo unavailable")
         payload["image_b64"] = base64.b64encode(data).decode()
     if body.source == "archive":
-        hits = remote("/search", payload)["items"]
+        retrieved = remote("/search", payload)
+        hits = retrieved["items"]
         results = [
             {**hit, "id": hit.get("detail_id") or hit["id"],
              "report_id": hit.get("report_id") or hit["id"], "source": "archive",
              "evidence_available": bool(hit.get("text"))}
             for hit in hits
         ]
-        return {"items": results, "total": len(results)}
+        return {"items": results, "total": retrieved.get("total", len(results))}
 
     checks = scope({**filters, "source": body.source})
     with engine.connect() as conn:
@@ -716,16 +721,21 @@ def search(body: Search):
 
     # Keep the worker's joint ranking. Relative fusion scores computed independently
     # in each collection do not have a common candidate denominator.
-    hits = remote("/search", payload)["items"]
+    retrieved = remote("/search", payload)
+    hits = retrieved["items"]
     ids = [hit["id"] for hit in hits]
+    display_language = filters.get("language")
+    if not display_language and body.source == "dubai2024" and body.locale in LANGS:
+        display_language = body.locale
     with engine.connect() as conn:
         rows = conn.execute(select(cases).where(cases.c.id.in_(ids), *checks)).mappings()
-        records = {(r["source"], r["id"]): r for r in summaries(conn, rows, filters.get("language"))}
+        records = {(r["source"], r["id"]): r for r in summaries(conn, rows, display_language)}
     results = [
         {**records[(hit["source"], hit["id"])], "score": hit["score"]}
         for hit in hits if (hit["source"], hit["id"]) in records
     ]
-    return {"items": results, "total": len(results)}
+    total = retrieved["total"] if body.page is not None else len(results)
+    return {"items": results, "total": total}
 
 
 def public_answer(raw):

@@ -43,6 +43,8 @@ const en = {
   date_to: "Until",
   all: "All",
   results: "Results",
+  page: "Page",
+  resultPages: "Search result pages",
   open: "Open case",
   location: "Location",
   unknown: "Location unknown",

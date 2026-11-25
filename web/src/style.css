@@ -961,6 +961,26 @@ blockquote {
 .search-grid .case-row {
   border-inline-end: 1px solid var(--line);
 }
+.search-range {
+  color: var(--sub);
+  margin-block: 0 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.search-pager,
+.search-pager > span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.search-pager {
+  flex-wrap: wrap;
+  margin-block: 0.75rem;
+}
+.search-pager button[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
 .section-heading {
   margin-block: 18px;
 }

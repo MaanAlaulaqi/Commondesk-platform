@@ -31,7 +31,7 @@ def scope(params):
         raise HTTPException(
             422, "The historical archive supports semantic search only."
         )
-    if source not in ("all", "live", "seed"):
+    if source not in ("all", "live", "seed", "dubai2024"):
         raise HTTPException(422, "Unknown collection")
     if source != "all":
         checks.append(t.source == source)

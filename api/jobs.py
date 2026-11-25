@@ -101,7 +101,7 @@ def process_one():
     )
     renewal.start()
     try:
-        if item["source"] == "seed":
+        if item["source"] in ("seed", "dubai2024"):
             worker("/metadata", item, timeout=60)
         else:
             worker("/index", payload, timeout=240)

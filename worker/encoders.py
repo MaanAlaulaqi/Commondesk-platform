@@ -61,6 +61,32 @@ def photo(value):
 class Encoders:
     def __init__(self):
         self.models = {}
+        self.topic_vectors = {}
+
+    def topic_vector(self, anchors):
+        import numpy as np
+
+        if anchors not in self.topic_vectors:
+            vectors = [self.encode("e5-small", "query: " + term) for term in anchors]
+            center = np.mean(vectors, axis=0)
+            self.topic_vectors[anchors] = center / np.linalg.norm(center)
+        return self.topic_vectors[anchors]
+
+    def search_text(self, text):
+        from .query_topics import query_topic
+
+        anchors, broad = query_topic(text)
+        if anchors is None:
+            return self.encode("e5-small", "query: " + text)
+        topic = self.topic_vector(anchors)
+        if broad:
+            return topic.tolist()
+        # Keep the incident details primary for queries such as "cars parked on the sidewalk".
+        import numpy as np
+
+        full_query = self.encode("e5-small", "query: " + text)
+        vector = 0.65 * np.asarray(full_query) + 0.35 * topic
+        return (vector / np.linalg.norm(vector)).tolist()
 
     def encode(self, name, value):
         import torch

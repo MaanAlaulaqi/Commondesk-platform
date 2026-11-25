@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+export COMMONDESK_SEED_DIR
+COMMONDESK_SEED_DIR=$(realpath "${1:-.data/DubaiV2Example}")
+docker compose run --rm --no-deps worker python -m worker.seed /seed
+docker compose run --rm --no-deps api python seed.py /seed
