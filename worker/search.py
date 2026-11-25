@@ -1,6 +1,9 @@
 """Source-isolated Qdrant collections. Only live cases can be written via HTTP."""
 
+from hashlib import sha256
+import json
 import os
+from time import monotonic
 import re
 from collections import OrderedDict
 from datetime import date, datetime, time, timedelta, timezone
@@ -16,6 +19,7 @@ from .encoders import Encoders
 
 COLLECTIONS = {
     "seed": "commondesk_seed_v1",
+    "dubai2024": "commondesk_dubai_example_2024",
     "live": "commondesk_live_v1",
     "archive": "bangkok_archive_e5",
 }
@@ -84,6 +88,7 @@ class Store:
         self.client = connect(os.getenv("QDRANT_URL"), os.getenv("QDRANT_API_KEY"))
         self.encoders = Encoders()
         self.archive_offsets = OrderedDict()
+        self.page_rankings = OrderedDict()
 
     @cached_property
     def archive(self):
@@ -94,7 +99,7 @@ class Store:
         return self.client
 
     def ensure(self, source, name=None):
-        if source not in ("live", "seed"):
+        if source not in ("live", "seed", "dubai2024"):
             raise ValueError("Read-only source")
         name = name or COLLECTIONS[source]
         if not self.client.collection_exists(name):
@@ -159,6 +164,7 @@ class Store:
             [point(payload["id"], payload, vector, image)],
             wait=True,
         )
+        self.page_rankings.clear()
         return {"id": payload["id"], "indexed": True}
 
     def archive_detail(self, identifier):
@@ -186,8 +192,10 @@ class Store:
 
     def metadata(self, body):
         source = body.get("source")
-        if source not in ("seed", "live") or not isinstance(body.get("id"), str):
-            raise ValueError("Expected canonical seed or live case ID")
+        if source not in ("seed", "live", "dubai2024") or not isinstance(
+            body.get("id"), str
+        ):
+            raise ValueError("Expected an indexed case source and canonical case ID")
         changes = {
             k: body[k]
             for k in ("category", "urgency", "status", "district")
@@ -220,6 +228,7 @@ class Store:
         ]
         if ids:
             self.client.set_payload(name, changes, points=ids, wait=True)
+        self.page_rankings.clear()
         return {"id": body["id"], "updated": True}
 
     def combined_search(self, body):
@@ -231,25 +240,118 @@ class Store:
         items = fuse(pairs, photo_pairs, limit)
         return {"items": items, "total": len(items)}
 
+    def channel_ranking(self, sources, kind, vector, selection):
+        scores = {}
+        for source in sources:
+            name = COLLECTIONS[source]
+            if not self.client.collection_exists(name):
+                continue
+            offset = 0
+            while True:
+                hits = self.client.query_points(
+                    name,
+                    using=kind,
+                    query=vector,
+                    query_filter=selection,
+                    search_params=q.SearchParams(exact=True),
+                    offset=offset,
+                    limit=1000,
+                    with_payload=["id"],
+                    with_vectors=False,
+                ).points
+                # Qdrant returns this channel in descending score order. The first
+                # language view of a submission therefore supplies its best score.
+                for hit in hits:
+                    cid = hit.payload["id"]
+                    scores.setdefault(cid, (hit.score, {"source": source, "id": cid}))
+                if len(hits) < 1000:
+                    break
+                offset += len(hits)
+        return dict(sorted(scores.items(), key=lambda entry: (-entry[1][0], entry[0])))
+
+    def ranked_page(self, source, text, image, filters, page, size):
+        # Cache the ordered IDs and scores only. Photo bytes and resident wording are not retained.
+        identity = [
+            source,
+            text,
+            sha256(image.encode()).hexdigest() if image else None,
+            filters,
+        ]
+        key = sha256(json.dumps(identity, sort_keys=True).encode()).digest()
+        now = monotonic()
+        cached = self.page_rankings.get(key)
+        if cached and now - cached[0] < 180:
+            ranked = cached[1]
+            self.page_rankings.move_to_end(key)
+        else:
+            sources = ("seed", "live", "dubai2024") if source == "all" else (source,)
+            selection = where(filters)
+            texts = (
+                self.channel_ranking(
+                    sources, "text", self.encoders.search_text(text), selection
+                )
+                if text
+                else {}
+            )
+            photos = (
+                self.channel_ranking(
+                    sources,
+                    "photo",
+                    self.encoders.encode("dinov2-small", image),
+                    selection,
+                )
+                if image
+                else {}
+            )
+            if text and image:
+                ranked = fuse(texts, photos, len(texts) + len(photos))
+            else:
+                matches = texts if text else photos
+                ranked = [dict(item, score=score) for score, item in matches.values()]
+            self.page_rankings[key] = (now, ranked)
+            self.page_rankings.move_to_end(key)
+            if len(self.page_rankings) > 8:
+                self.page_rankings.popitem(last=False)
+        start = (page - 1) * size
+        return {"items": ranked[start : start + size], "total": len(ranked)}
+
     def search(self, body):
         source = body.get("source", "live")
         if not 1 <= int(body.get("limit", 20)) <= 100:
             raise ValueError("Limit outside 1 to 100")
+        page = body.get("page")
+        if page is not None:
+            if type(page) is not int or page < 1:
+                raise ValueError("Invalid page number")
+            if source != "archive":
+                if source not in (*COLLECTIONS, "all"):
+                    raise ValueError("Unknown search collection")
+                text = (body.get("text") or "").strip()
+                if not text and not body.get("image_b64"):
+                    raise ValueError("Supply a query or photo")
+                return self.ranked_page(
+                    source,
+                    text,
+                    body.get("image_b64"),
+                    body.get("filters") or {},
+                    page,
+                    50,
+                )
         if source == "all":
             limit = int(body.get("limit", 20))
             # Each collection uses identical pinned encoders. Pool before multimodal fusion.
-            # Both per-source candidate windows are fixed so archive cannot enter shared search.
+            # The historical archive is searched only when selected explicitly.
             if body.get("text") and body.get("image_b64"):
                 return self.combined_search(body)
             items = [
                 item
-                for part in ("seed", "live")
+                for part in ("seed", "live", "dubai2024")
                 for item in self.search(dict(body, source=part))["items"]
             ]
             items.sort(key=lambda x: (-x["score"], x["id"]))
             return {"items": items[:limit], "total": len(items[:limit])}
         if source not in COLLECTIONS:
-            raise ValueError("Choose seed, live or archive")
+            raise ValueError("Unknown search collection")
         name = COLLECTIONS[source]
         limit = int(body.get("limit", 20))
         text = (body.get("text") or "").strip()
@@ -265,9 +367,20 @@ class Store:
                 raise Unavailable("Archive alias has not been published")
             if image or query_filter:
                 raise ValueError("Archive supports unfiltered text lookup only")
-            vv = self.encoders.encode("e5-small", "query: " + text)
+            vv = self.encoders.search_text(text)
+            offset = (page - 1) * 50 if page is not None else 0
+            total = (
+                self.archive.count(name, exact=True).count if page is not None else None
+            )
+            if total is not None and offset >= total:
+                return {"items": [], "total": total}
             hits = self.archive.query_points(
-                name, query=vv, limit=limit, with_payload=True
+                name,
+                query=vv,
+                limit=50 if page is not None else limit,
+                offset=offset,
+                with_payload=True,
+                search_params=q.SearchParams(exact=True) if page is not None else None,
             ).points
             items = [
                 dict(
@@ -283,7 +396,7 @@ class Store:
                     self.archive_offsets.popitem(last=False)
             return {
                 "items": items,
-                "total": len(items),
+                "total": total if total is not None else len(items),
                 "evidence_available": bool(os.getenv("ARCHIVE_CATALOG")),
             }
         if not self.client.collection_exists(name):
@@ -310,11 +423,7 @@ class Store:
                 seen.setdefault(h.payload["id"], (h.score, h.payload))
             return seen
 
-        texts = (
-            retrieve("text", self.encoders.encode("e5-small", "query: " + text))
-            if text
-            else {}
-        )
+        texts = retrieve("text", self.encoders.search_text(text)) if text else {}
         photos = (
             retrieve("photo", self.encoders.encode("dinov2-small", image))
             if image

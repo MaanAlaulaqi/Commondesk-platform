@@ -105,7 +105,7 @@ def answer(body):
         query = (body.get("question") or "").casefold()
         named_rta = any(t in query for t in service_terms)
         report = (
-            reports[0] if case_id and reports and source in ("live", "seed") else {}
+            reports[0] if case_id and reports and source in ("live", "seed", "dubai2024") else {}
         )
         options = report.get("service_options") or []
         # Older API callers supplied ID strings for the single verified public passage.

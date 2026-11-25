@@ -116,6 +116,7 @@ export function SourceSelect({
         onChange={(e) => onChange(e.target.value)}
       >
         <option value="seed">{t("seed")}</option>
+        <option value="dubai2024">DubaiV2Example</option>
         <option value="live">{t("live")}</option>
         {archive && <option value="archive">{t("archive")}</option>}
       </select>

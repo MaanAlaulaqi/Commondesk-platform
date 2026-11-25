@@ -202,7 +202,8 @@ export default function DetailView({
     );
   const originals = c.original_text || c.text,
     lang = c.original_language || c.language,
-    photo = c.photo || c.media_id;
+    photo = c.photo || c.media_id,
+    isDubaiExample = c.source === "seed" || c.source === "dubai2024";
   if (c.source === "archive")
     return (
       <div className="narrow">
@@ -280,7 +281,7 @@ export default function DetailView({
                     alt={c.photo_alt || t("photo") + " · " + id}
                   />
                 </a>
-                {c.source === "seed" && (
+                {isDubaiExample && (
                   <figcaption>{t("sourcePhoto")}</figcaption>
                 )}
               </figure>
@@ -290,8 +291,8 @@ export default function DetailView({
               <dd>
                 {c.source === "seed"
                   ? t("seed")
-                  : c.source === "archive"
-                    ? t("archive")
+                  : c.source === "dubai2024"
+                    ? "DubaiV2Example"
                     : t("live")}
               </dd>
               <dt>{t("location")}</dt>
@@ -312,7 +313,7 @@ export default function DetailView({
                 </>
               )}
             </dl>
-            {c.source === "seed" && <p className="muted">{t("simulated")}</p>}
+            {isDubaiExample && <p className="muted">{t("simulated")}</p>}
           </section>
           <section className="sheet">
             <h2>{t("timeline")}</h2>

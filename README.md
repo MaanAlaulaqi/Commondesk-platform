@@ -45,6 +45,9 @@ With Docker Compose installed, run `./scripts/start` and open http://localhost:5
 
 To add the authorized Dubai demo, run `./scripts/import-seed /path/to/dubai-example-seed-v2.zip`. The importer checks the archive checksum before loading the two stores. It is safe to repeat. Select **Dubai example** to browse 2,348 canonical submissions, including 38 original Bangkok photo–report pairs. Their Dubai pins and workflow fields are simulated. Select **Live workspace** for new submissions.
 
+To add **DubaiV2Example**, run `./scripts/import-dubai-2024 /path/to/DubaiV2Example` against the local stack. The default directory is `.data/DubaiV2Example`. Select the collection in Explore or Search. It contains 2,500 photo-backed Thai reports from 2024, with stored English, Arabic, Hindi and Urdu translations. The pins represent simulated Dubai neighborhoods. Each search stays within the chosen collection, and each report appears once. [Dataset build and provenance](docs/dubai-2024.md)
+
+
 For a fresh organization's shared workspace, start the stack under a separate Compose project name and unique volumes or deploy a separate instance. Retain the original evidence and review history. Configure private service endpoints and backups before collecting operational reports; the shared release gives every visitor access to all reports and review actions.
 
 ## Hosting

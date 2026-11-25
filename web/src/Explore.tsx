@@ -185,7 +185,7 @@ export default function Explore({ query }: { query: Filters }) {
               <i className="cluster-key" />
               {t("group")}
             </span>
-            {source === "seed" && <small>{t("simulated")}</small>}
+            {(source === "seed" || source === "dubai2024") && <small>{t("simulated")}</small>}
           </div>
           <Notice error={pins.error} retry={pins.retry} />
         </section>

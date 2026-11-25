@@ -59,6 +59,8 @@ export const phrases: Record<string, [string, string, string, string, string]> =
     ],
     view: ["View", "عرض", "منظر", "दृश्य", "มุมมอง"],
     overview: ["Overview", "نظرة عامة", "خلاصہ", "सारांश", "ภาพรวม"],
+    page: ["Page", "الصفحة", "صفحہ", "पृष्ठ", "หน้า"],
+    resultPages: ["Search result pages", "صفحات نتائج البحث", "تلاش کے نتائج کے صفحات", "खोज परिणामों के पृष्ठ", "หน้าผลการค้นหา"],
     results: ["Results", "النتائج", "نتائج", "परिणाम", "ผลลัพธ์"],
     unknown: [
       "Location unknown",

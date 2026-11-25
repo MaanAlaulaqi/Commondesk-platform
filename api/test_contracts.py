@@ -41,6 +41,18 @@ with tempfile.TemporaryDirectory() as temp:
                     assert [i["id"] for i in result.json()["items"]] == ["example",live_id]
                     assert worker.call_count == 1
                     assert worker.call_args.args[1]["source"] == "all"
+                with engine.begin() as conn:
+                    photo_case = {**seed, "id": "dv2-example", "source": "dubai2024"}
+                    conn.execute(cases.insert().values(**photo_case))
+                mixed = [*hits, {"source": "dubai2024", "id": "dv2-example", "score": 0.7}]
+                with patch("main.remote", return_value={"items": mixed}) as worker:
+                    for source, expected in (("seed", "example"), ("dubai2024", "dv2-example")):
+                        result = api.post("/api/search", json={"text": "footpath", "source": source})
+                        assert result.status_code == 200
+                        assert [row["id"] for row in result.json()["items"]] == [expected]
+                        assert worker.call_args.args[1]["source"] == source
+                assert api.get("/api/cases/dv2-example?source=seed").status_code == 404
+                assert api.get("/api/cases/dv2-example?source=dubai2024").status_code == 200
                 assert api.get(f"/api/cases/{live_id}?source=seed").status_code == 404
                 q = dict(kind="guidance",question="Madinati",source="live",reports=[])
                 assert answer({**q,"case_id":live_id})["outcome"] == "no_evidence"

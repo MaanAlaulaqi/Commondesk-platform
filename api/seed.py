@@ -10,16 +10,29 @@ from sqlalchemy import func, select
 
 from db import cases, engine, events, insert_for, media, migrate, views
 
+DUBAI_2024_REPORTS_HASH = "47b29d6118f077ab1c1c09820b3d8ba8673840930596046a7c6e7aa9cfe18eef"
+DUBAI_2024_MEDIA_HASH = "28f2b1714b9afaaf1782fc4236774caa29ef9cda8cda2c68851fa0f964383768"
 REPORTS_HASH = "f059056ff764e4f34dbda333fab7ee9cec7b33b1bbfd905328b410c65076ee6a"
 
 
 def seed(root: Path):
     path = root / "reports.jsonl"
     manifest = json.loads((root / "manifest.json").read_text())
-    if (
-        manifest["collection"] != "dubai_example_v2"
-        or hashlib.sha256(path.read_bytes()).hexdigest() != REPORTS_HASH
-    ):
+    source = "seed"
+    expected_count = 2348
+    reports_hash = REPORTS_HASH
+    if manifest["collection"] == "DubaiV2Example":
+        source = "dubai2024"
+        expected_count = 2500
+        reports_hash = DUBAI_2024_REPORTS_HASH
+        media_hash = hashlib.sha256(
+            (root / "media/manifest.json").read_bytes()
+        ).hexdigest()
+        if media_hash != DUBAI_2024_MEDIA_HASH:
+            raise ValueError("Unexpected 2024 photo manifest")
+    elif manifest["collection"] != "dubai_example_v2":
+        raise ValueError("Unknown seed collection")
+    if hashlib.sha256(path.read_bytes()).hexdigest() != reports_hash:
         raise ValueError("Expected the verified Dubai v2 release")
     assets = json.loads((root / "media/manifest.json").read_text())["assets"]
     source_by_id = {asset["id"]: asset["source"] for asset in assets}
@@ -39,7 +52,7 @@ def seed(root: Path):
                     data=image,
                     mime="image/webp",
                     alt=asset["alt"],
-                    source="seed",
+                    source=source,
                 ),
             )
         primaries, wordings, history = [], [], []
@@ -62,7 +75,9 @@ def seed(root: Path):
                 category=r["category"],
                 urgency=r["urgency_suggested"],
                 evidence=r["urgency_reason_code"],
-                version="dubai-example-v2",
+                version=manifest["collection"]
+                if source == "dubai2024"
+                else "dubai-example-v2",
                 service_options=r["service_options"],
             )
             origin = source_by_id.get(r["media_id"], {})
@@ -85,7 +100,7 @@ def seed(root: Path):
                 dict(
                     id=cid,
                     incident_id=r["incident_id"],
-                    source="seed",
+                    source=source,
                     text=r["text"],
                     language=r["language"],
                     intent=r["intent"],
@@ -128,7 +143,7 @@ def seed(root: Path):
                 stmt = stmt.on_conflict_do_update(
                     index_elements=[cases.c.id],
                     set_={"proposal": stmt.excluded.proposal},
-                    where=cases.c.source == "seed",
+                    where=cases.c.source == source,
                 )
             else:
                 stmt = stmt.on_conflict_do_nothing()
@@ -138,9 +153,9 @@ def seed(root: Path):
                     items[start : start + 100],
                 )
         total = conn.scalar(
-            select(func.count()).select_from(cases).where(cases.c.source == "seed")
+            select(func.count()).select_from(cases).where(cases.c.source == source)
         )
-        if total != 2348:
+        if total != expected_count:
             raise ValueError(f"Unexpected canonical seed count {total}")
         print(
             f"Seed verified: {total} canonical cases, {len(wordings)} language views, {len(assets)} source photos"

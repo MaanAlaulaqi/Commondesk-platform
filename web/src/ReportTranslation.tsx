@@ -100,7 +100,7 @@ export function ReportTranslation({
               <small>
                 {t(
                   result.kind === "stored"
-                    ? "storedTranslation"
+                    ? (source === "dubai2024" ? "ordinaryMachineTranslation" : "storedTranslation")
                     : result.attribution === "machine"
                       ? "ordinaryMachineTranslation"
                       : "machineTranslation",

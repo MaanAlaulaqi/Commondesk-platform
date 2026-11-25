@@ -16,7 +16,7 @@ import "@fontsource/barlow-condensed/700.css";
 import "@fontsource/barlow-condensed/800.css";
 import "./style.css";
 import { Locale, useWords } from "./locale";
-import { langs, route } from "./client";
+import { langs, route, url } from "./client";
 import { listenForClicks } from "./uiEvents";
 import Explore from "./Explore";
 import Report from "./Report";
@@ -127,7 +127,9 @@ function Shell({
             ).map(({ key, Icon }) => (
               <a
                 data-ui-action={key + "_open"}
-                href={"#/" + key}
+                href={url(key, {
+                  source: key !== "search" && r.params.source === "archive" ? "" : r.params.source,
+                })}
                 key={key}
                 aria-current={page === key ? "page" : undefined}
               >
@@ -185,7 +187,7 @@ function Shell({
         ) : page === "report" ? (
           <Report />
         ) : page === "search" ? (
-          <Search key={r.params.source} query={r.params} />
+          <Search query={r.params} />
         ) : page === "insights" ? (
           <Insights query={r.params} />
         ) : (
