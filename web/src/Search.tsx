@@ -1,7 +1,7 @@
 import { PageOrientation } from "./PageOrientation";
-import { useContext, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
-import { type CaseList, type Filters, post, upload, url } from "./client";
+import { type CaseList, type Filters, post, request, upload, url } from "./client";
 import { Locale, useWords } from "./locale";
 import {
   Busy,
@@ -14,7 +14,8 @@ import {
   type Facets,
 } from "./ui";
 const PAGE_SIZE = 50;
-type SubmittedSearch = { text: string; photo?: string; source: string; filters: Filters };
+type SearchInput = { text: string; file: File | null; filters: Filters };
+type SearchPage = { input: SearchInput; page: number; focusHeading?: boolean };
 
 // Keep both ends and the current neighborhood reachable even for the historical archive.
 function pageNumbers(page: number, last: number) {
@@ -50,63 +51,84 @@ function SearchForm({
     [busy, setBusy] = useState(false),
     [error, err] = useState(""),
     [page, setPage] = useState(1),
-    [submitted, setSubmitted] = useState<SubmittedSearch | null>(null),
-    generation = useRef(0),
+    [active, search] = useState<SearchPage>(() => ({
+      input: { text, file: null, filters: {} }, page: 1,
+    })),
+    uploaded = useRef<{ file: File; id: Promise<string> } | null>(null),
     heading = useRef<HTMLHeadingElement>(null);
   const total = rows?.total ?? 0;
   const last = Math.ceil(total / PAGE_SIZE);
   const number = new Intl.NumberFormat(locale);
   const facets = useLoad<Facets>(
-    f.source === "archive" ? null : "/facets?source=" + f.source,
+    source === "archive" ? null : "/facets?source=" + source,
   );
-  function resetResults() {
-    generation.current++;
-    load(null);
-    setSubmitted(null);
-    setPage(1);
-    setBusy(false);
-    err("");
+  function apply(filters: Filters) {
+    search({
+      input: { text: text.trim(), file, filters: Object.fromEntries(
+        Object.entries(filters).filter(([key, value]) => key !== "source" && value),
+      ) },
+      page: 1,
+    });
   }
-  async function run(nextPage = 1, previous?: SubmittedSearch) {
-    const version = ++generation.current;
-    setBusy(true);
-    err("");
-    if (!previous) {
-      load(null);
-      setSubmitted(null);
-    }
-    try {
-      const query = previous ?? {
-        text,
-        photo: file ? await upload(file) : undefined,
-        source: f.source,
-        filters: Object.fromEntries(Object.entries(f).filter(([key]) => key !== "source")),
-      };
-      if (version !== generation.current) return;
-      const fetchPage = (n: number) => post<CaseList>("/search", {
-        ...query, locale, page: n, limit: PAGE_SIZE,
-      });
-      let result = await fetchPage(nextPage);
-      if (version !== generation.current) return;
-      const finalPage = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
-      if (nextPage > finalPage) {
-        nextPage = finalPage;
-        result = await fetchPage(nextPage);
+  function goTo(page: number) {
+    search({ input: active.input, page, focusHeading: true });
+  }
+  useEffect(() => {
+    let current = true;
+    const { input, page: targetPage } = active;
+    async function refresh() {
+      err("");
+      if (source === "archive" && !input.text) {
+        load(null);
+        setBusy(false);
+        return;
       }
-      if (version !== generation.current) return;
-      load(result);
-      setSubmitted(query);
-      setPage(nextPage);
-      if (previous) requestAnimationFrame(() => heading.current?.focus());
-    } catch (e) {
-      if (version === generation.current) err((e as Error).message);
-    } finally {
-      if (version === generation.current) setBusy(false);
+      setBusy(true);
+      try {
+        let photo: string | undefined;
+        if (input.file) {
+          const file = input.file;
+          if (uploaded.current?.file !== file) {
+            const id = upload(file).catch((error) => {
+              if (uploaded.current?.id === id) uploaded.current = null;
+              throw error;
+            });
+            uploaded.current = { file, id };
+          }
+          photo = await uploaded.current.id;
+        }
+        if (!current) return;
+        const fetchPage = (n: number) => input.text || photo
+          ? post<CaseList>("/search", {
+              source, locale, text: input.text, photo, filters: input.filters, page: n, limit: PAGE_SIZE,
+            })
+          : request<CaseList>("/cases?" + new URLSearchParams({
+              ...input.filters, source, locale: input.filters.language || locale,
+              limit: String(PAGE_SIZE), offset: String((n - 1) * PAGE_SIZE),
+            }));
+        let result = await fetchPage(targetPage);
+        if (!current) return;
+        const finalPage = Math.min(targetPage, Math.max(1, Math.ceil(result.total / PAGE_SIZE)));
+        if (finalPage !== targetPage) result = await fetchPage(finalPage);
+        if (!current) return;
+        load(result);
+        setPage(finalPage);
+        if (active.focusHeading) heading.current?.focus();
+      } catch (error) {
+        if (current) {
+          load(null);
+          err((error as Error).message);
+        }
+      } finally {
+        if (current) setBusy(false);
+      }
     }
-  }
-  const pager = submitted && last > 1 && (
+    void refresh();
+    return () => { current = false; };
+  }, [active, locale, source]);
+  const pager = last > 1 && (
     <nav className="search-pager" aria-label={t("resultPages")} aria-busy={busy}>
-      <button disabled={busy || page === 1} onClick={() => void run(page - 1, submitted)}>
+      <button disabled={busy || page === 1} onClick={() => goTo(page - 1)}>
         {t("previous")}
       </button>
       {pageNumbers(page, last).map((n, index, pages) => (
@@ -116,13 +138,13 @@ function SearchForm({
             aria-label={t("page") + " " + number.format(n)}
             aria-current={page === n ? "page" : undefined}
             disabled={busy}
-            onClick={() => { if (page !== n) void run(n, submitted); }}
+            onClick={() => { if (page !== n) goTo(n); }}
           >
             {number.format(n)}
           </button>
         </span>
       ))}
-      <button disabled={busy || page === last} onClick={() => void run(page + 1, submitted)}>
+      <button disabled={busy || page === last} onClick={() => goTo(page + 1)}>
         {t("next")}
       </button>
     </nav>
@@ -145,7 +167,7 @@ function SearchForm({
         className="search-form"
         onSubmit={(e) => {
           e.preventDefault();
-          void run();
+          apply(f);
         }}
       >
         <Field label={t("searchHint")}>
@@ -180,7 +202,7 @@ function SearchForm({
           f={f}
           set={(v) => {
             set(v);
-            resetResults();
+            apply(v);
           }}
           facets={facets.data}
         />

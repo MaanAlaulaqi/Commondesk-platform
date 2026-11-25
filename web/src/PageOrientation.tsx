@@ -72,9 +72,11 @@ export function PageOrientation({ topic }: { topic: Topic }) {
           <CircleHelp size={16} aria-hidden="true" />
           {label}
         </button>
-        <p id={id} className="help-content" hidden={!open}>
-          {explanation}
-        </p>
+        <div className="help-slot">
+          <p id={id} className="help-content" hidden={!open}>
+            {explanation}
+          </p>
+        </div>
       </div>
     </>
   );
